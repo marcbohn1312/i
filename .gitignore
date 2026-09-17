@@ -1,0 +1,8 @@
+# Grosse Rohdateien/Build-Artefakte -- werden nicht versioniert.
+payload/
+*.exe
+install.log
+
+# NSIS-Build-Output
+/optixxl-Installationsassistent.exe
+/optixxl-Deinstallationsassistent.exe
