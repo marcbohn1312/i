@@ -1,4 +1,4 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050912"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Börse SK"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body><title>Börsensystem nach SK</title>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050912"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="Börse SK"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body><title>Börsensystem nach SK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <style>
@@ -714,6 +714,7 @@ function patSVG(dir){
   ${lab('0,5 - 0,667',172,Y(130),c)}${lab('161,8 - 200 %',186,up?Y(8):Y(8),T)}</svg>`;
 }
 const IC={up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',wt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></svg>',no:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>'};
+function renderAll(){COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}
 function renderHero(s,b,c){
   const H=$('hero'),coin=custom?custom.name:sel+' / USDT';
   $('hcoin').textContent=coin+' · '+tf();
@@ -739,7 +740,8 @@ function renderHero(s,b,c){
     $('hmeter').hidden=false;$('hml').textContent='Abstand zur '+zone;$('hmv').textContent=pctS(s.dist,1);$('hmf').style.width=Math.round(Math.max(4,Math.min(100,100*(1-s.dist/.08))))+'%';
     $('hplan').innerHTML=plan('Geplanter Einstieg');
     $('hsteps').innerHTML=['Noch nichts tun.','Schalte unter „Einstellungen“ den Alarm an (Alarm bis Quittieren).','Lass die App offen. Bei Erreichen der Zone zeigt sie dir die Schritte.'].map(t=>`<li>${t}</li>`).join('');$('hhow').hidden=false;return}
-  if(s.gate==='conf'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Struktur ist zu schwach: nur ${s.conf} von mindestens 3 Bestätigungen. Die SK-Regel verlangt mehr, das System rät ab.`);return}
+  if(s.gate==='conf'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone} (${fmt(Math.min(s.lvl(.5),s.lvl(.667)))} bis ${fmt(Math.max(s.lvl(.5),s.lvl(.667)))}), aber die Struktur ist noch zu schwach: erst ${s.conf} von mindestens 3 Bestätigungen. Nach der SK-Regel gibt es deshalb noch kein Signal. Warte, bis die Struktur steht.`);
+    $('hplan').innerHTML='<button type="button" id="hlock" class="off">Struktur-Prüfung ausschalten (nicht SK-konform)</button>';$('hlock').onclick=()=>{$('st').value='lock';renderAll()};return}
   if(s.gate==='against'){set('wait','no','Kein Handel','Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.');return}
   if(s.state==='in'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Chance zu Risiko ist mit ${s.crv.toFixed(1)} zu 1 zu klein. Das System rät ab.`);return}
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
@@ -990,7 +992,7 @@ function renderEntries(s){
     let st,note='';
     if(x.state==='counter'){st=['Gegen-Handel möglich','target'];note='Das Gewinnziel der Sequenz ist erreicht. Ein Gegen-Handel ist riskanter.'}
     else if(x.gate==='against'){st=['Gegen die Sequenz','mid'];note='Die andere Richtung hat gerade das Signal. Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.'}
-    else if(x.gate==='conf'){st=['Struktur zu schwach','mid'];note=`Nur ${x.conf} von mindestens 3 Struktur-Bestätigungen. Die SK-Regel verlangt mehr.`}
+    else if(x.gate==='conf'){st=['Gesperrt: Struktur '+x.conf+' von 3','mid'];note=`Der Kurs steht in der Zone, aber die SK-Regel verlangt mindestens 3 Struktur-Bestätigungen. Es sind erst ${x.conf}. Deshalb gibt es kein Signal.`}
     else if(x.dir!=='none'){st=['Jetzt möglich',cls];note='Der Kurs steht in der Zone. Das System erlaubt den Einstieg.'}
     else if(x.state==='in'){st=['Zone erreicht','wait'];note='Die Chance zu Risiko ist zu klein. Das System rät ab.'}
     else if(x.state==='wait'){st=['Noch '+pctS(x.dist,1),'wait'];note=`Der Kurs muss noch ${long?'fallen':'steigen'}, bis er die Zone erreicht.`}
@@ -1000,7 +1002,7 @@ function renderEntries(s){
     return `<div class="ent-card ${cls}${x.state==='beyond'||x.state==='unconf'||x.gate?' dim':''}"><div class="ent-top"><b>${name}</b><span class="tag ${st[1]}">${st[0]}</span></div>
       <div class="ent-main"><div><small>Bester Einstiegspunkt</small><b>${fmt(best)}</b></div><div style="text-align:right"><small>Einstiegszone</small><span style="font:500 13.5px var(--mono)">${fmt(lo)} bis ${fmt(hi)}</span></div></div>
       <div class="ent-rows"><div><small>Aktuell</small><b>${fmt(x.last)}</b></div><div class="s"><small>Verlustgrenze</small><b>${fmt(x.lv.sl)}</b></div><div class="t"><small>Gewinnziel</small><b>${fmt(x.lv.tp1)}</b></div></div>
-      ${multi?`<p class="ent-note">Einstiege (Multi-Trade): ${multi}</p>`:''}<p class="ent-note">${note}</p></div>`};
+      ${multi?`<p class="ent-note">Einstiege (Multi-Trade): ${multi}</p>`:''}<p class="ent-note">${note}</p>${x.conf!=null?`<p class="ent-note">Struktur: <b style="color:var(--fg);letter-spacing:.15em">${'●'.repeat(Math.min(x.conf,3))}${'○'.repeat(Math.max(0,3-x.conf))}</b> ${Math.min(x.conf,3)} von 3 nötig</p>`:''}</div>`};
   $('ent').innerHTML=card(1)+card(-1);
 }
 function renderZones(s){
