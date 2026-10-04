@@ -297,6 +297,7 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
     <section data-o="8" class="panel" id="patp"><h2>SK-Muster</h2><div class="pat" id="pat"></div>
       <p class="note" style="margin-top:8px">Vorgegebenes SK-Muster: Strecke 0-A, Korrektur nach B in die Zone 0,5 bis 0,667 (A gilt ab dem 0,382er Level als bestätigt), danach Bewegung C in die Zielzone 161,8 bis 200 % der trendbasierten Extension ab B.</p></section>
     <section data-o="1" class="panel" id="posp"><h2>Deine Order für die Börsen-App</h2><div class="ordctl">
+      <label for="sz" style="grid-column:1/-1">Position berechnen nach<select id="sz"><option value="risk" selected>Risiko (empfohlen): Position aus deinem Risiko</option><option value="mh">Margin und Hebel: Position aus deiner Margin</option></select></label>
       <label for="mm">Margin-Modus<select id="mm"><option value="iso" selected>Isoliert</option><option value="cross">Cross</option></select></label>
       <label for="lm">Hebel<select id="lm"><option value="auto" selected>Automatisch</option><option value="fix">Fest</option></select></label>
       <label for="lf">Fester Hebel (x)<input id="lf" type="number" min="1" max="125" step="1" value="50"></label>
@@ -615,7 +616,7 @@ function beep(up){if(!sound)return;try{actx=actx||new (window.AudioContext||wind
 
 /* ---------- Anzeige ---------- */
 function cur(){return custom?{candles:custom.candles,live:false,src:'Eigene CSV',ts:Date.now(),s:custom.s,err:''}:board[sel]}
-function pick(c){sel=c;custom=null;picking=0;hint('');$('mo').value='';$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
+function pick(c){sel=c;custom=null;picking=0;hint('');if($('sz').value!=='mh')$('mo').value='';$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
 function sigCls(c){const b=board[c],s=b&&b.s;if(!s)return'';const d=s.dir!=='none'?s.dir:(s.alt&&s.alt.dir!=='none'?s.alt.dir:'');return d==='long'?'sl':d==='short'?'ss':''}
 function chipInfo(c){
   const b=board[c],s=b&&b.s;if(!s||!s.seq)return{t:'–',k:'',p:s?fmt(s.last):'…'};
@@ -748,12 +749,15 @@ function renderPos(s){
   let units=rows.reduce((a,r)=>a+r.units,0);const avg=units?rows.reduce((a,r)=>a+r.units*r.e,0)/units:s.lv.entry;
   const stopDist=Math.max(...rows.map(r=>r.dist)),stopPct=stopDist/avg;
   let N=units*avg,mm=N*mmr,risk=riskAmt;
-  const Mrec=2*risk+mm;                                      // Liquidation mindestens doppelt so weit wie der Stop
-  const fix=$('lm').value==='fix',iso=$('mm').value==='iso',Mo=+$('mo').value||0;
-  let L=fix?Math.max(1,Math.min(125,Math.round(+$('lf').value||1))):Math.max(1,Math.min(mh,Math.floor(N/Mrec)));
-  let M=Mo>0?Mo:N/L;
+  let Mrec=2*risk+mm;                                        // Liquidation mindestens doppelt so weit wie der Stop
+  const fix=$('lm').value==='fix',iso=$('mm').value==='iso',Mo=+$('mo').value||0,byM=$('sz').value==='mh'&&Mo>0;
+  const riskTarget=riskAmt;let L,M;
+  if(byM){                                                   // Position aus Margin und Hebel (wie beim Eröffnen einer Order)
+    L=Math.max(1,Math.min(125,Math.round(+$('lf').value||1)));M=Mo;
+    const f=(M*L)/N;units*=f;N*=f;mm*=f;risk=units*stopDist;rows.forEach(r=>{r.units*=f;r.notional*=f});Mrec=2*risk+mm;
+  }else{L=fix?Math.max(1,Math.min(125,Math.round(+$('lf').value||1))):Math.max(1,Math.min(mh,Math.floor(N/Mrec)));M=Mo>0?Mo:N/L}
   let capped=false;
-  if(M>acc&&acc>0){const f=acc/M;units*=f;N*=f;mm*=f;risk*=f;M=acc;capped=true;rows.forEach(r=>{r.units*=f;r.notional*=f})}
+  if(M>acc&&acc>0&&!byM){const f=acc/M;units*=f;N*=f;mm*=f;risk*=f;M=acc;capped=true;rows.forEach(r=>{r.units*=f;r.notional*=f})}
   const Mini=N/L;                                           // nötige Anfangsmargin für den Hebel
   const eff=N/M;                                            // tatsächlicher Hebel mit eingezahlter Margin
   const avail=iso?M:acc;
@@ -765,17 +769,23 @@ function renderPos(s){
   const tp=s.lv.tp1,sl=s.lv.sl;
   const chip=(t,c)=>`<span class="c2 ${c||''}">${t}</span>`;
   const cell=(l,v,c)=>`<div class="${c||''}"><small>${l}</small><b>${v}</b></div>`;
+  const Lmax=Math.max(1,Math.floor(1/(2*stopPct+mmr)));
   let warn='';
-  if(liqState==='fail')warn=`<p class="o-warn bad"><b>Achtung:</b> Mit diesem Hebel und dieser Margin würde deine Position <b>vor</b> der Verlustgrenze liquidiert (Liq. ${fmt(liq)}, Stop ${fmt(sl)}). Erhöhe die Margin auf mindestens ${fmtU(Mrec)} USDT oder senke den Hebel.</p>`;
-  else if(liqState==='warn')warn=`<p class="o-warn mid">Die Liquidation liegt hinter dem Stop, aber knapp. Empfohlen sind mindestens ${fmtU(Mrec)} USDT Margin, dann liegt sie doppelt so weit weg wie der Stop.</p>`;
-  else warn=`<p class="o-warn ok">Die Liquidation liegt mehr als doppelt so weit weg wie die Verlustgrenze. Das ist ein sicherer Abstand.</p>`;
+  if(byM){const rp=risk/acc;
+    if(M>acc&&acc>0)warn+=`<p class="o-warn bad">Die Margin (${fmtU(M)} USDT) ist größer als dein Konto (${fmtU(acc)} USDT).</p>`;
+    if(rp>.03)warn+=`<p class="o-warn bad"><b>Zu riskant:</b> Bei Stop verlierst du ${fmtU(risk)} USDT, das sind ${pctS(rp,1)} deines Kontos. Das Tradebook erlaubt höchstens 1 bis 3 %. Senke Margin oder Hebel.</p>`;
+    else if(risk>riskTarget*1.001)warn+=`<p class="o-warn mid">Bei Stop verlierst du ${fmtU(risk)} USDT (${pctS(rp,1)} des Kontos). Das ist mehr als dein eingestelltes Risiko von ${fmtU(riskTarget)} USDT.</p>`;
+    else warn+=`<p class="o-warn ok">Bei Stop verlierst du ${fmtU(risk)} USDT (${pctS(rp,1)} des Kontos). Das liegt innerhalb deines Risikos.</p>`}
+  if(liqState==='fail')warn+=`<p class="o-warn bad"><b>Achtung:</b> Mit diesem Hebel und dieser Margin würde deine Position <b>vor</b> der Verlustgrenze liquidiert (Liq. ${fmt(liq)}, Stop ${fmt(sl)}). ${byM?`Bei gleicher Margin gilt: Je höher der Hebel, desto näher die Liquidation. Senke den Hebel auf höchstens ${Lmax}x.`:`Erhöhe die Margin auf mindestens ${fmtU(Mrec)} USDT oder senke den Hebel.`}</p>`;
+  else if(liqState==='warn')warn+=`<p class="o-warn mid">Die Liquidation liegt hinter dem Stop, aber knapp. ${byM?`Empfohlen ist ein Hebel von höchstens ${Lmax}x, dann liegt sie doppelt so weit weg wie der Stop.`:`Empfohlen sind mindestens ${fmtU(Mrec)} USDT Margin, dann liegt sie doppelt so weit weg wie der Stop.`}</p>`;
+  else warn+=`<p class="o-warn ok">Die Liquidation liegt mehr als doppelt so weit weg wie die Verlustgrenze. Das ist ein sicherer Abstand.</p>`;
   if(marginLow)warn+=`<p class="o-warn bad">Die Margin (${fmtU(M)} USDT) reicht für ${L}x nicht aus. Nötig sind mindestens ${fmtU(Mini)} USDT.</p>`;
   $('pd').innerHTML=`<div class="ord"><div class="o-head"><b>${coin}USDT</b>${chip(d===1?'Long':'Short',d===1?'long':'short')}${chip(iso?'Isoliert':'Cross')}${chip(Math.round(eff*10)/10===Math.round(eff)?Math.round(eff)+'x':eff.toFixed(1).replace('.',',')+'x')}${s.dir==='none'?chip('Plan'):chip('Signal',d===1?'long':'short')}</div>
   <div class="o-grid">${cell('Einstiegspreis',fmt(avg))}${cell('Letzter Preis',fmt(s.last))}${cell('Gesamtvol. (USDT)',fmtU(N))}
   ${cell('Position ('+unit+')',fmtQ(units))}${cell('Gesch. Liq. Preis',fmt(liq),'lq')}${cell('Risiko (USDT)',fmtU(risk))}
-  ${cell('Margin (USDT)',fmtU(M))}${cell('Take Profit',fmt(tp),'tp')}${cell('Stop Loss',fmt(sl),'sl')}</div>${warn}
-  <div class="o-btns"><button type="button" id="mrec">Empfohlene Margin übernehmen</button><button type="button" id="ocopy" class="off">Werte kopieren</button></div></div>`;
-  $('mrec').onclick=()=>{$('mo').value=(Math.ceil(Mrec*100)/100).toFixed(2);renderMain()};
+  ${cell('Margin (USDT)',fmtU(M))}${cell('Take Profit',fmt(tp),'tp')}${cell('Stop Loss',fmt(sl),'sl')}${cell('Gewinn bis Ziel (USDT)',fmtU(units*Math.abs(tp-avg)),'tp')}</div>${warn}
+  <div class="o-btns"><button type="button" id="mrec">${byM?`Empfohlenen Hebel übernehmen (${Lmax}x)`:'Empfohlene Margin übernehmen'}</button><button type="button" id="ocopy" class="off">Werte kopieren</button></div></div>`;
+  $('mrec').onclick=()=>{if(byM)$('lf').value=Lmax;else $('mo').value=(Math.ceil(Mrec*100)/100).toFixed(2);renderMain()};
   $('ocopy').onclick=()=>{const t=`${coin}USDT ${d===1?'Long':'Short'} ${iso?'Isoliert':'Cross'} ${Math.round(eff)}x\nEinstiegspreis ${fmt(avg)}\nPosition ${fmtQ(units)} ${unit}\nMargin ${fmtU(M)} USDT\nTake Profit ${fmt(tp)}\nStop Loss ${fmt(sl)}\nGesch. Liq. Preis ${fmt(liq)}`;
     try{navigator.clipboard.writeText(t).then(()=>{$('ocopy').textContent='Kopiert'},()=>{$('ocopy').textContent='Nicht möglich'})}catch(e){$('ocopy').textContent='Nicht möglich'}};
   $('pdd').innerHTML='<dl>'+[['Strategie',s.multi?'Multi-Trade, 4 Einstiege':'1-Trade'],['Abstand zum Stop',pctS(stopPct)],['Nötige Anfangsmargin für '+L+'x',fmtU(Mini)+' USDT'],['Empfohlene Margin',fmtU(Mrec)+' USDT'],['Erhaltungsmargin (geschätzt)',fmtU(mm)+' USDT'],['Break-even-Marke (1R)',fmt(s.lv.entry+d*Math.abs(s.lv.entry-s.lv.sl))],['Doppelter Profit (2R)',fmt(s.lv.entry+d*2*Math.abs(s.lv.entry-s.lv.sl))]].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>'
@@ -785,7 +795,7 @@ function renderPos(s){
   if(eff>5)t+=' Hoher Hebel: Schon kleine Gegenbewegungen und Gebühren belasten das Konto stark.';
   t+=' Break-even: Den Stop nicht nachziehen, außer auf Break-even. Die Marken 1R und 2R sind meine Auslegung.';
   $('pn').textContent=t;
-  return{fR:risk,safe:Math.round(eff)||1,capped,maxByLiq:liqState==='ok'?2:liqState==='warn'?1:0,acc,rk,fN:N,M,liq,iso,Mrec,units,liqState,L:Math.round(eff)||1};
+  const out={fR:risk,safe:Math.round(eff)||1,capped,maxByLiq:liqState==='ok'?2:liqState==='warn'?1:0,acc,rk:byM?risk/acc:rk,fN:N,M,liq,iso,Mrec,units,liqState,L:Math.round(eff)||1,byM};window.lastPos=out;return out;
 }
 function renderRisk(s,c){
   const dl=+$('dl').value/100,hr=+$('hr').value/100;$('dlv').textContent=$('dl').value;$('hrv').textContent=$('hr').value;$('mcv').textContent=$('mc').value;
@@ -994,7 +1004,8 @@ $('tf').value='4h';renderTfs();
 $('coin').addEventListener('change',()=>pick($('coin').value));
 $('tf').addEventListener('change',()=>{renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
 ['sw','sm','pp','ps','mc'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
-['acc','rk','mh','dl','hr','mm','lm','lf','mo'].forEach(id=>$(id).addEventListener('input',renderMain));
+['acc','rk','mh','dl','hr','mm','lm','lf','mo','sz'].forEach(id=>$(id).addEventListener('input',renderMain));
+$('sz').addEventListener('change',()=>{if($('sz').value==='mh'){if(!$('mo').value&&window.lastPos)$('mo').value=(Math.ceil(window.lastPos.Mrec*100)/100).toFixed(2);if(window.lastPos&&$('lm').value!=='fix')$('lm').value='fix'}renderMain()});
 function snd(){$('snd').textContent=sound?'Ton an':'Ton aus';$('snd').className=sound?'':'off'}
 $('snd').onclick=()=>{sound=!sound;store.set('sk_snd',sound);snd();if(sound)beep(true)};snd();
 $('ntf').onclick=()=>{try{Notification.requestPermission().then(p=>{$('ntf').textContent=p==='granted'?'Hinweis an':'Hinweis blockiert';$('ntf').className=p==='granted'?'':'off'})}catch(e){}};
