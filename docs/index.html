@@ -301,7 +301,7 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
       <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="upd"></span></div></div>
       <canvas id="cv" aria-label="Kerzenchart mit SK-Sequenz 0-A-B-C, Kaufzone, Verkaufszone und Zielzone"></canvas>
       <div class="legend lg-pro"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Long-Einstiegsbereich (Kaufzone)</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Short-Einstiegsbereich (Verkaufszone)</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Zielzone 161,8 - 200 %</span><span>0, A, B = erkannte Punkte, C = erwartete Bewegung</span></div>
-      <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Rote Linie = Verlustgrenze</span></div>
+      <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Ziel = Gewinnziel</span><span>Stop = Verlustgrenze</span></div>
     </section>
     <div class="two" data-o="4" id="twop">
       <section class="panel" id="scanp"><h2>Scanner, alle Coins</h2><div class="tw"><table><thead><tr><th>Coin</th><th>Preis</th><th>Muster</th><th>Status</th><th>Abstand</th></tr></thead><tbody id="scan"></tbody></table></div>
@@ -489,7 +489,7 @@ function analyseDir(cs,key,wantD,useManual){
   }
   const risk=Math.abs(entry-sl);s.crv=risk>0?Math.abs(s.lv.tp1-entry)/risk:0;
   s.dir=(s.state==='in'||s.state==='counter')&&s.crv>=s.minCrv?(s.side===1?'long':'short'):'none';
-  s.view0=Math.max(0,Math.min(O.i-15,cs.length-70));
+  s.view0=Math.max(0,Math.min(O.i-12,cs.length-70),cs.length-120);
   return s;
 }
 
@@ -752,81 +752,128 @@ function renderRisk(s,c){
 }
 
 /* ---------- Chart ---------- */
+function hexA(h,a){h=h.replace('#','');const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function rrect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
 function draw(b){
   const cv=$('cv'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
   if(!b||!b.s)return;
-  const s=b.s,cs=b.candles,seq=s.seq;
-  const f=css('--fg'),mu=css('--muted'),L=css('--long'),S=css('--short'),T=css('--target'),AC=css('--accent');
-  const NARROW=W<600,pad={l:8,r:NARROW?108:(document.body.classList.contains('pro')?118:160),t:34,b:14},iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
-  const v0=s.view0,view=cs.slice(v0),n=view.length;
+  const s=b.s,cs=b.candles,seq=s.seq,PRO=document.body.classList.contains('pro');
+  const f=css('--fg'),mu=css('--muted'),L=css('--long'),S=css('--short'),T=css('--target'),AC=css('--accent'),BG=css('--bg');
+  const NARROW=W<600,pad={l:NARROW?44:54,r:NARROW?108:(PRO?124:136),t:42,b:16},iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
+  const n0=cs.length,maxC=NARROW?(PRO?100:80):140,v0=Math.max(s.view0,n0-maxC),view=cs.slice(v0),n=view.length;
+  /* Preisbereich: Kerzen, Zonen, Stop. Ein fernes Ziel wird nicht mitskaliert, sondern am Rand angezeigt. */
   let hi=Math.max(...view.map(c=>c.h)),lo=Math.min(...view.map(c=>c.l));
-  if(s.alt&&s.alt.seq){const q=s.alt,ext=[q.lvl(.5),q.lvl(.667),q.lvl(.382)];hi=Math.max(hi,...ext);lo=Math.min(lo,...ext)}
-  if(seq){const ext=[s.tgt(2),s.lv.sl,s.lv.tp1,s.lvl(.786)];hi=Math.max(hi,...ext);lo=Math.min(lo,...ext);if(s.counter){hi=Math.max(hi,s.counter.t1,s.counter.t2);lo=Math.min(lo,s.counter.t1,s.counter.t2)}}
-  const rg=hi-lo,pmin=lo-rg*.04,pmax=hi+rg*.04,Y=p=>pad.t+ih*(1-(p-pmin)/(pmax-pmin));
-  const cwid=iw*.74,cw=cwid/n,X=i=>pad.l+cw*(i-v0+.5),bw=Math.max(1,cw*.62);
-  geo=custom?null:{pad,cw,v0,pmin,pmax,ih};
-  g.font='12px '+css('--mono');g.textBaseline='middle';
-  g.strokeStyle='rgba(70,190,255,.08)';g.lineWidth=1;for(let i=0;i<=6;i++){const y=pad.t+ih*i/6;g.beginPath();g.moveTo(pad.l,y);g.lineTo(pad.l+iw,y);g.stroke()}
-  
-  const PRO=document.body.classList.contains('pro');
-  const SHORT={'LONG-EINSTIEGSBEREICH':'LONG','SHORT-EINSTIEGSBEREICH':'SHORT','ZIELZONE':'ZIEL','ZIELGEBIET (ALT)':'ZIEL alt'};
-  const SIMPLE={'LONG-EINSTIEGSBEREICH':'KAUFZONE','SHORT-EINSTIEGSBEREICH':'VERKAUFSZONE','ZIELZONE':'GEWINNZIEL','ZIELGEBIET (ALT)':'ALTES ZIEL'};
-  const LBL=[],lab=(t,c,y,f)=>{if(!PRO){if(!SIMPLE[t])return;t=NARROW?(t.indexOf('LONG')===0?'KAUFEN':t.indexOf('SHORT')===0?'VERKAUF':'ZIEL'):SIMPLE[t]}else if(NARROW){if(!SHORT[t])return;t=SHORT[t]}LBL.push({t,c,y,f:f||'12px '+css('--mono')})};
   const alt=s.alt&&s.alt.seq?s.alt:null;
+  if(alt){hi=Math.max(hi,alt.lvl(.5),alt.lvl(.667));lo=Math.min(lo,alt.lvl(.5),alt.lvl(.667))}
+  let clipT=0;
+  if(seq){
+    const keep=[s.lv.sl,s.lv.entry,s.lvl(.5),s.lvl(.667)];hi=Math.max(hi,...keep);lo=Math.min(lo,...keep);
+    if(PRO){const ext=[s.tgt(2),s.lvl(.786),s.lv.tp1];hi=Math.max(hi,...ext);lo=Math.min(lo,...ext);if(s.counter){hi=Math.max(hi,s.counter.t1,s.counter.t2);lo=Math.min(lo,s.counter.t1,s.counter.t2)}}
+    else{const room=(hi-lo)*.5,tp=s.lv.tp1,tz=s.lv.tp2;
+      if(tp>hi){if(tp-hi<=room)hi=Math.max(hi,Math.min(tz,hi+room*1.2));else clipT=1}
+      else if(tp<lo){if(lo-tp<=room)lo=Math.min(lo,Math.max(tz,lo-room*1.2));else clipT=-1}}
+  }
+  const rg=hi-lo||1,pmin=lo-rg*.06,pmax=hi+rg*.06,Y=p=>pad.t+ih*(1-(p-pmin)/(pmax-pmin)),Yc=p=>Y(Math.max(pmin,Math.min(pmax,p)));
+  const cwid=iw*(PRO?.74:.8),cw=cwid/n,X=i=>pad.l+cw*(i-v0+.5),bw=Math.max(2,Math.min(14,cw*.68));
+  geo=custom?null:{pad,cw,v0,pmin,pmax,ih};
+  g.textBaseline='middle';
+  /* Hintergrund und Preisraster */
+  const gr=g.createLinearGradient(0,pad.t,0,pad.t+ih);gr.addColorStop(0,'rgba(120,170,255,.05)');gr.addColorStop(1,'rgba(120,170,255,.01)');
+  g.fillStyle=gr;rrect(g,pad.l,pad.t,iw,ih,8);g.fill();
+  g.font='500 10.5px '+css('--mono');g.textAlign='right';
+  const step=(()=>{const raw=rg/5,m=Math.pow(10,Math.floor(Math.log10(raw))),r=raw/m;return(r<1.5?1:r<3.5?2:r<7.5?5:10)*m})();
+  for(let p=Math.ceil(pmin/step)*step;p<=pmax;p+=step){const y=Y(p);if(y<pad.t+6||y>pad.t+ih-6)continue;
+    g.strokeStyle='rgba(140,180,255,.09)';g.lineWidth=1;g.beginPath();g.moveTo(pad.l,y);g.lineTo(pad.l+iw,y);g.stroke();
+    g.fillStyle=mu;g.fillText(fmt(p),pad.l-6,y)}
+  const LBL=[],SHORT={'LONG-EINSTIEGSBEREICH':'LONG','SHORT-EINSTIEGSBEREICH':'SHORT','ZIELZONE':'ZIEL','ZIELGEBIET (ALT)':'ZIEL alt'};
+  const lab=(t,c,y,fnt)=>{if(!PRO)return;if(NARROW){if(!SHORT[t])return;t=SHORT[t]}LBL.push({t,c,y,f:fnt||'12px '+css('--mono')})};
+  const zoneLbl=[];                      // Beschriftung in den Zonen (Einfach-Ansicht)
+  const band=(p1,p2,col,xs,name,fillA)=>{
+    const ya=Math.min(Yc(p1),Yc(p2)),yb=Math.max(Yc(p1),Yc(p2)),x0=Math.max(pad.l,xs),x1=pad.l+iw;
+    g.fillStyle=hexA(col,fillA||.16);g.fillRect(x0,ya,x1-x0,Math.max(2,yb-ya));
+    g.save();g.strokeStyle=col;g.lineWidth=1.6;g.globalAlpha=.95;[ya,yb].forEach(y=>{g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke()});g.restore();
+    if(name)zoneLbl.push({t:name,c:col,x:x0+8,y:(ya+yb)/2});
+  };
   if(alt){
-    const aL=alt.seq.d===1,ac=aL?L:S,af=aL?css('--long-bg'):css('--short-bg'),xa2=X(alt.seq.A.i),xr2=pad.l+iw,y1=Y(alt.lvl(.5)),y2=Y(alt.lvl(.667));
-    g.fillStyle=af;g.fillRect(xa2,Math.min(y1,y2),xr2-xa2,Math.abs(y1-y2));
-    g.save();g.strokeStyle=ac;g.shadowColor=ac;g.shadowBlur=6;g.globalAlpha=.85;[y1,y2].forEach(y=>{g.beginPath();g.moveTo(xa2,y);g.lineTo(xr2,y);g.stroke()});g.restore();
-    g.save();g.strokeStyle=ac;g.globalAlpha=.45;g.setLineDash([4,5]);g.beginPath();g.moveTo(X(alt.seq.O.i),Y(alt.seq.O.p));g.lineTo(X(alt.seq.A.i),Y(alt.seq.A.p));if(alt.seq.B)g.lineTo(X(alt.seq.B.i),Y(alt.seq.B.p));g.stroke();g.restore();
-    g.fillStyle=ac;g.font='700 10px '+css('--mono');g.textAlign='center';
-    if(PRO)[[alt.seq.O,'0'],[alt.seq.A,'A']].forEach(([P,t])=>{g.fillText(t+(aL?'L':'S'),X(P.i),Y(P.p)+(P.type==='H'?-9:11))});
-    lab((aL?'LONG':'SHORT')+'-EINSTIEGSBEREICH',ac,(y1+y2)/2,'600 12px '+css('--display'));
+    const aL=alt.seq.d===1,ac=aL?L:S,xs=X(alt.seq.A.i);
+    band(alt.lvl(.5),alt.lvl(.667),ac,xs,aL?'KAUFZONE':'VERKAUFSZONE');
+    g.save();g.strokeStyle=ac;g.globalAlpha=.4;g.lineWidth=1.5;g.setLineDash([4,5]);g.beginPath();
+    const pO=alt.seq.O,pA=alt.seq.A;g.moveTo(X(pO.i),Yc(pO.p));g.lineTo(X(pA.i),Yc(pA.p));if(alt.seq.B)g.lineTo(X(alt.seq.B.i),Yc(alt.seq.B.p));g.stroke();g.restore();
+    if(PRO){g.fillStyle=ac;g.font='700 10px '+css('--mono');g.textAlign='center';[[pO,'0'],[pA,'A']].forEach(([P,t])=>g.fillText(t+(aL?'L':'S'),X(P.i),Yc(P.p)+(P.type==='H'?-9:11)))}
+    lab((aL?'LONG':'SHORT')+'-EINSTIEGSBEREICH',ac,(Y(alt.lvl(.5))+Y(alt.lvl(.667)))/2,'600 12px '+css('--display'));
   }
   if(seq){
-    const long=seq.d===1,zc=long?L:S,zf=long?css('--long-bg'):css('--short-bg'),xa=X(seq.A.i),xr=pad.l+iw;
-    const band=(p1,p2,fill,stroke)=>{g.fillStyle=fill;g.fillRect(xa,Math.min(Y(p1),Y(p2)),xr-xa,Math.abs(Y(p1)-Y(p2)));
-      g.save();g.shadowColor=stroke;g.shadowBlur=8;g.strokeStyle=stroke;g.globalAlpha=.9;[p1,p2].forEach(p=>{g.beginPath();g.moveTo(xa,Y(p));g.lineTo(xr,Y(p));g.stroke()});g.restore()};
-    band(s.lvl(.5),s.lvl(.667),zf,zc);band(s.tgt(1.618),s.tgt(2),css('--target-bg'),T);
-    if(s.counter){band(s.counter.t1,s.counter.t2,css('--target-bg'),T);lab('ZIELGEBIET (ALT)',T,(Y(s.counter.t1)+Y(s.counter.t2))/2,'600 12px '+css('--display'))}
-    if(PRO)[[.382,'0,382'],[.786,'0,786']].forEach(([r,t])=>{const y=Y(s.lvl(r));g.save();g.setLineDash([2,5]);g.strokeStyle=mu;g.globalAlpha=.7;g.beginPath();g.moveTo(xa,y);g.lineTo(xr,y);g.stroke();g.restore();lab(t,mu,y)});
-    if(PRO){const y=Y(s.tgt(1));g.save();g.setLineDash([2,5]);g.strokeStyle=T;g.globalAlpha=.6;g.beginPath();g.moveTo(xa,y);g.lineTo(xr,y);g.stroke();g.restore();lab('100 %',T,y)}
-    const lx=pad.l+cwid+8;g.textAlign='left';g.fillStyle=zc;
-    FIB_IN.forEach(r=>{const y=Y(s.lvl(r));if(PRO&&r!==.5&&r!==.667){g.globalAlpha=.4;g.strokeStyle=zc;g.beginPath();g.moveTo(xa,y);g.lineTo(xr,y);g.stroke();g.globalAlpha=1}});
-    lab('161,8 - 200 %',T,(Y(s.tgt(1.618))+Y(s.tgt(2)))/2);
-    g.font='600 12px '+css('--display');
-    lab((long?'LONG':'SHORT')+'-EINSTIEGSBEREICH',zc,(Y(s.lvl(.5))+Y(s.lvl(.667)))/2,'600 12px '+css('--display'));
-    lab('ZIELZONE',T,Math.min(Y(s.tgt(1.618)),Y(s.tgt(2)))+14,'600 12px '+css('--display'));g.font='12px '+css('--mono');
+    const long=seq.d===1,zc=long?L:S,xa=X(seq.A.i);
+    band(s.lvl(.5),s.lvl(.667),zc,xa,long?'KAUFZONE':'VERKAUFSZONE',.2);
+    if(!clipT)band(s.tgt(1.618),s.tgt(2),T,xa,'GEWINNZIEL',.13);
+    if(s.counter)band(s.counter.t1,s.counter.t2,T,xa,null,.1);
+    if(PRO){
+      [[.382,'0,382'],[.786,'0,786']].forEach(([r,t])=>{const y=Y(s.lvl(r));g.save();g.setLineDash([2,5]);g.strokeStyle=mu;g.globalAlpha=.7;g.beginPath();g.moveTo(Math.max(pad.l,xa),y);g.lineTo(pad.l+iw,y);g.stroke();g.restore();lab(t,mu,y)});
+      {const y=Y(s.tgt(1));g.save();g.setLineDash([2,5]);g.strokeStyle=T;g.globalAlpha=.6;g.beginPath();g.moveTo(Math.max(pad.l,xa),y);g.lineTo(pad.l+iw,y);g.stroke();g.restore();lab('100 %',T,y)}
+      FIB_IN.forEach(r=>{if(r!==.5&&r!==.667){const y=Y(s.lvl(r));g.globalAlpha=.4;g.strokeStyle=zc;g.beginPath();g.moveTo(Math.max(pad.l,xa),y);g.lineTo(pad.l+iw,y);g.stroke();g.globalAlpha=1}});
+      lab('161,8 - 200 %',T,(Y(s.tgt(1.618))+Y(s.tgt(2)))/2);
+      lab((long?'LONG':'SHORT')+'-EINSTIEGSBEREICH',zc,(Y(s.lvl(.5))+Y(s.lvl(.667)))/2,'600 12px '+css('--display'));
+      lab('ZIELZONE',T,Math.min(Y(s.tgt(1.618)),Y(s.tgt(2)))+14,'600 12px '+css('--display'));
+      if(s.counter)lab('ZIELGEBIET (ALT)',T,(Y(s.counter.t1)+Y(s.counter.t2))/2,'600 12px '+css('--display'));
+    }
   }
-  view.forEach((c,i)=>{const x=X(v0+i),up=c.c>=c.o,col=up?L:S;g.strokeStyle=g.fillStyle=col;
+  /* Kerzen */
+  view.forEach((c,i)=>{const x=X(v0+i),up=c.c>=c.o,col=up?L:S;
+    g.strokeStyle=col;g.fillStyle=col;g.lineWidth=Math.max(1.2,Math.min(2,bw/4));
     g.beginPath();g.moveTo(x,Y(c.h));g.lineTo(x,Y(c.l));g.stroke();
-    const y1=Y(Math.max(c.o,c.c)),y2=Y(Math.min(c.o,c.c));g.globalAlpha=up?.85:1;g.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));g.globalAlpha=1});
+    const y1=Y(Math.max(c.o,c.c)),y2=Y(Math.min(c.o,c.c)),h=Math.max(1.5,y2-y1);
+    g.globalAlpha=up?.9:1;g.fillRect(x-bw/2,y1,bw,h);g.globalAlpha=1});
+  const tags=[];                                   // Preis-Etiketten rechts
   if(seq){
-    const long=seq.d===1,zc=long?L:S;
-    g.save();g.shadowColor=AC;g.shadowBlur=10;g.strokeStyle=AC;g.lineWidth=2;g.setLineDash([6,4]);g.beginPath();g.moveTo(X(seq.O.i),Y(seq.O.p));g.lineTo(X(seq.A.i),Y(seq.A.p));
-    if(seq.B)g.lineTo(X(seq.B.i),Y(seq.B.p));g.stroke();g.setLineDash([]);g.restore();
-    // erwartete Bewegung C
-    const bx=seq.B?X(seq.B.i):X(seq.A.i),by=seq.B?Y(seq.B.p):Y(seq.A.p),cx=pad.l+cwid+cwid*.12,cy=Y((s.tgt(1.618)+s.tgt(2))/2);
-    g.save();g.strokeStyle=T;g.shadowColor=T;g.shadowBlur=10;g.lineWidth=2;g.setLineDash([2,5]);g.beginPath();g.moveTo(bx,by);g.quadraticCurveTo((bx+cx)/2,Math.min(by,cy)+(by>cy?-30:30)*0,cx,cy);g.stroke();g.setLineDash([]);
-    const ang=Math.atan2(cy-by,cx-bx);g.fillStyle=T;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx-12*Math.cos(ang-.4),cy-12*Math.sin(ang-.4));g.lineTo(cx-12*Math.cos(ang+.4),cy-12*Math.sin(ang+.4));g.closePath();g.fill();g.restore();
+    const long=seq.d===1,pO=seq.O,pA=seq.A,pB=seq.B;
+    /* Muster 0-A-B */
+    g.save();g.strokeStyle=hexA(AC,.85);g.lineWidth=2;g.setLineDash([7,5]);g.lineJoin='round';g.beginPath();
+    g.moveTo(X(pO.i),Yc(pO.p));g.lineTo(X(pA.i),Yc(pA.p));if(pB&&pB.i>pA.i)g.lineTo(X(pB.i),Yc(pB.p));g.stroke();g.restore();
+    /* erwartete Bewegung C */
+    const bx=pB&&pB.i>pA.i?X(pB.i):X(pA.i),by=pB&&pB.i>pA.i?Yc(pB.p):Yc(pA.p),cx=pad.l+cwid+(iw-cwid)*.45,cy=Yc(clipT?(clipT>0?pmax:pmin):(s.tgt(1.618)+s.tgt(2))/2)+(clipT?(clipT>0?14:-14):0);
+    g.save();g.strokeStyle=T;g.lineWidth=2;g.setLineDash([2,6]);g.lineCap='round';g.beginPath();g.moveTo(bx,by);g.quadraticCurveTo((bx+cx)/2+8,(by+cy)/2,cx,cy);g.stroke();g.setLineDash([]);
+    const ang=Math.atan2(cy-by,cx-bx);g.fillStyle=T;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx-11*Math.cos(ang-.45),cy-11*Math.sin(ang-.45));g.lineTo(cx-11*Math.cos(ang+.45),cy-11*Math.sin(ang+.45));g.closePath();g.fill();g.restore();
     if(PRO){g.font='700 14px '+css('--display');g.fillStyle=T;g.textAlign='center';g.fillText('C',cx-4,cy+(cy<by?-16:16))}
-    const pt=(P,label,above)=>{const x=X(P.i),y=Y(P.p);g.save();g.shadowColor=AC;g.shadowBlur=12;g.fillStyle=css('--bg');g.strokeStyle=AC;g.lineWidth=2;g.beginPath();g.arc(x,y,5.5,0,7);g.fill();g.stroke();g.restore();
-      g.fillStyle=AC;g.font=(PRO?'700 14px ':'600 12px ')+css('--display');g.textAlign='center';g.fillText(PRO?label:({'0':'Start','A':P.type==='H'?'Hoch':'Tief','B':'Rücklauf'}[label]||label),x,y+(above?-16:16))};
-    pt(seq.O,'0',seq.O.type==='H');pt(seq.A,'A',seq.A.type==='H');if(seq.B&&seq.B.i>seq.A.i&&(PRO||!NARROW))pt(seq.B,'B',!long);
-    g.font='12px '+css('--mono');
-    [['Einstieg',s.lv.entry,f],['Stop',s.lv.sl,S],['Ziel 1',s.lv.tp1,T],['Ziel 2',s.lv.tp2,T]].filter(r=>!(r[0]==='Einstieg'&&s.state==='in')&&(PRO||r[0]!=='Ziel 2')).forEach(([t,p,c])=>{
-      const y=Y(p);g.strokeStyle=c;g.setLineDash([6,3]);g.globalAlpha=.8;g.beginPath();g.moveTo(pad.l+cwid-30,y);g.lineTo(W-pad.r+4,y);g.stroke();g.setLineDash([]);g.globalAlpha=1;
-      g.fillStyle=c;g.textAlign='left';g.fillText((PRO?(NARROW?{'Einstieg':'E','Stop':'SL','Ziel 1':'Z1','Ziel 2':'Z2'}[t]:t):(NARROW?{'Einstieg':'Einst.','Stop':'Stop','Ziel 1':'Ziel'}[t]:{'Einstieg':'Einstieg','Stop':'Verlustgrenze','Ziel 1':'Gewinnziel'}[t]))+' '+fmt(p),W-pad.r+6,y)});
-    // Signal-Banner
-    g.textAlign='left';g.font='900 15px '+css('--display');
+    /* Punkte */
+    const pt=(P,label,above)=>{const x=X(P.i),y=Yc(P.p);if(x<pad.l-2)return;
+      g.save();g.shadowColor=AC;g.shadowBlur=10;g.fillStyle=BG;g.strokeStyle=AC;g.lineWidth=2.4;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();g.restore();
+      const txt=PRO?label:({'0':'Start','A':P.type==='H'?'Hoch':'Tief','B':'Rücklauf'}[label]||label);
+      g.font=(PRO?'700 13px ':'600 12px ')+css('--display');g.textAlign='center';const w=g.measureText(txt).width+12,ty=y+(above?-18:18);
+      g.fillStyle=hexA(BG,.78);rrect(g,Math.max(pad.l,Math.min(x-w/2,pad.l+iw-w)),ty-9,w,18,9);g.fill();g.fillStyle=AC;g.fillText(txt,Math.max(pad.l+w/2,Math.min(x,pad.l+iw-w/2)),ty)};
+    pt(pO,'0',pO.type==='H');pt(pA,'A',pA.type==='H');if(pB&&pB.i>pA.i&&(PRO||!NARROW))pt(pB,'B',!long);
+    /* Linien Einstieg, Stop, Ziel */
+    const lines=[['Einstieg',s.lv.entry,f,'E'],['Stop',s.lv.sl,S,'S'],['Ziel 1',s.lv.tp1,T,'Z']];if(PRO)lines.push(['Ziel 2',s.lv.tp2,T,'Z2']);
+    lines.filter(r=>!(r[0]==='Einstieg'&&s.state==='in')).forEach(([t,p,c,k])=>{
+      const out=(p>pmax)||(p<pmin),y=Yc(p);
+      g.save();g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash([7,4]);g.globalAlpha=.85;g.beginPath();g.moveTo(pad.l+cwid*.62,y);g.lineTo(pad.l+iw,y);g.stroke();g.restore();
+      const nm=PRO?(NARROW?{'Einstieg':'E','Stop':'SL','Ziel 1':'Z1','Ziel 2':'Z2'}[t]:t):(NARROW?{'Einstieg':'Ein','Stop':'Stop','Ziel 1':'Ziel'}[t]:{'Einstieg':'Einstieg','Stop':'Stop','Ziel 1':'Ziel'}[t]);
+      tags.push({y,c,text:nm+' '+fmt(p),dark:t!=='Einstieg',arrow:out&&!NARROW?(p>pmax?'▲ ':'▼ '):''});
+    });
+    /* Banner */
     const txt=s.state==='counter'?(s.dir!=='none'?'GEGENTRADE '+(s.side===1?'LONG':'SHORT')+' SIGNAL':'ZIELGEBIET ERREICHT · GEGENTRADE MÖGLICH'):s.dir!=='none'?(long?'LONG SIGNAL':'SHORT SIGNAL'):('SK '+(long?'LONG':'SHORT')+'-SEQUENZ'+(s.state==='wait'?' · WARTEN':s.state==='unconf'?' · A UNBESTÄTIGT':s.state==='beyond'?' · TRADE UNGÜLTIG':''));
     const txt2=PRO?txt:(s.dir!=='none'?(s.state==='counter'?'GEGEN-HANDEL: ':'')+(s.side===1?'KAUFEN':'VERKAUFEN'):(s.state==='wait'?'WARTEN':s.state==='unconf'?'NOCH UNKLAR':s.state==='beyond'?'ZU SPÄT':s.state==='counter'?'ZIEL ERREICHT':'KEIN HANDEL'));
-    const bc=s.dir!=='none'?(s.side===1?L:S):mu;g.save();if(s.dir!=='none'){g.shadowColor=bc;g.shadowBlur=18}g.fillStyle=bc;g.fillText(txt2,pad.l+6,16);g.restore();
+    const bc=s.dir!=='none'?(s.side===1?L:S):(s.state==='wait'?css('--wait'):mu);
+    g.font='700 14px '+css('--display');g.textAlign='left';const bw2=g.measureText(txt2).width+26;
+    g.save();if(s.dir!=='none'){g.shadowColor=bc;g.shadowBlur=16}g.fillStyle=hexA(bc,s.dir!=='none'?.9:.16);rrect(g,pad.l,8,bw2,26,13);g.fill();g.restore();
+    g.strokeStyle=bc;g.lineWidth=1.4;rrect(g,pad.l,8,bw2,26,13);g.stroke();g.fillStyle=s.dir!=='none'?'#031018':bc;g.fillText(txt2,pad.l+13,21.5);
   }
+  /* Beschriftungen der Zonen (Einfach) mit Hintergrund */
+  if(!PRO){g.font='700 11.5px '+css('--display');g.textAlign='left';
+    zoneLbl.forEach(z=>{const t=NARROW?(z.t==='KAUFZONE'?'KAUFEN':z.t==='VERKAUFSZONE'?'VERKAUFEN':'ZIEL'):z.t,w=g.measureText(t).width+12;
+      g.fillStyle=hexA(BG,.72);rrect(g,z.x-4,z.y-9,w,18,9);g.fill();g.fillStyle=z.c;g.fillText(t,z.x+2,z.y+.5)})}
+  /* Beschriftungen rechts (Profi) */
   LBL.sort((a,b)=>a.y-b.y);for(let i=1;i<LBL.length;i++)if(LBL[i].y-LBL[i-1].y<15)LBL[i].y=LBL[i-1].y+15;
-  g.textAlign='left';LBL.forEach(l=>{g.font=l.f;g.fillStyle=l.c;g.fillText(l.t,pad.l+cwid+8,l.y)});g.font='12px '+css('--mono');
-  const ly=Y(s.last);g.strokeStyle=f;g.globalAlpha=.7;g.setLineDash([4,3]);g.beginPath();g.moveTo(pad.l,ly);g.lineTo(pad.l+cwid,ly);g.stroke();g.setLineDash([]);g.globalAlpha=1;
-  g.fillStyle=AC;g.fillRect(W-pad.r+2,ly-10,NARROW?pad.r-4:74,20);g.fillStyle=css('--bg');g.textAlign='left';g.font=(NARROW?'12px ':'13px ')+css('--mono');g.fillText(fmt(s.last),W-pad.r+5,ly);
+  g.textAlign='left';LBL.forEach(l=>{g.font=l.f;g.fillStyle=l.c;g.fillText(l.t,pad.l+cwid+8,l.y)});
+  /* aktueller Preis */
+  const ly=Y(s.last);g.strokeStyle=hexA(f,.55);g.lineWidth=1.2;g.setLineDash([3,4]);g.beginPath();g.moveTo(pad.l,ly);g.lineTo(pad.l+iw,ly);g.stroke();g.setLineDash([]);
+  tags.push({y:ly,c:AC,text:fmt(s.last),dark:true,now:true});
+  /* Preis-Etiketten rechts ohne Überlappung */
+  tags.sort((a,b)=>a.y-b.y);for(let i=1;i<tags.length;i++)if(tags[i].y-tags[i-1].y<21)tags[i].y=tags[i-1].y+21;
+  g.font=(NARROW?'600 11px ':'600 12px ')+css('--mono');g.textAlign='left';
+  tags.forEach(t=>{const w=pad.r-10,x=W-pad.r+6;g.fillStyle=t.now?AC:hexA(t.c,t.dark?.92:.22);rrect(g,x,t.y-10,w,20,10);g.fill();
+    if(!t.dark&&!t.now){g.strokeStyle=hexA(t.c,.6);g.lineWidth=1;rrect(g,x,t.y-10,w,20,10);g.stroke()}
+    g.fillStyle=(t.dark||t.now)?'#031018':f;g.save();g.beginPath();g.rect(x+4,t.y-10,w-6,20);g.clip();g.fillText((t.arrow||'')+t.text,x+9,t.y+.5);g.restore()});
 }
 
 function renderZones(s){
