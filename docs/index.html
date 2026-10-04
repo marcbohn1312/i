@@ -1,4 +1,4 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050912"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="SK Board"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body><title>SK Zonenboard</title>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050912"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Börse SK"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body><title>Börsensystem nach SK</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
 <style>
@@ -43,7 +43,7 @@ input[type=number]{width:104px}input[type=file]{max-width:180px;font-size:12px}
 input[type=range]{accent-color:var(--accent);width:118px}
 .grid{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:14px;align-items:start}
 @media(max-width:980px){.grid{display:flex;flex-direction:column;align-items:stretch}.grid>.col{display:contents}[data-o="1"]{order:1}[data-o="2"]{order:2}[data-o="3"]{order:3}[data-o="4"]{order:4}[data-o="5"]{order:5}[data-o="6"]{order:6}[data-o="7"]{order:7}[data-o="8"]{order:8}[data-o="9"]{order:9}[data-o="10"]{order:10}}
-@media(max-width:700px){details#cfg>summary{display:block}.brand{flex-direction:column;gap:2px}.brand small{font-size:11px}.brand h1{font-size:20px}.panel{padding:12px}.v-main{font-size:26px}.price{font-size:22px}.controls{padding:10px}.status{gap:6px}button,.btn{padding:6px 10px;font-size:12px}}
+@media(max-width:700px){details#cfg>summary{display:block}.brand{flex-direction:column;gap:2px}.brand small{font-size:11px}.brand h1{font-size:15px;letter-spacing:.08em}.panel{padding:12px}.v-main{font-size:26px}.price{font-size:22px}.controls{padding:10px}.status{gap:6px}button,.btn{padding:6px 10px;font-size:12px}}
 .col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0;backdrop-filter:blur(6px)}
 h2{font:700 12px var(--display);letter-spacing:.18em;text-transform:uppercase;margin:0 0 10px;color:var(--accent);display:flex;align-items:center;gap:8px}
@@ -122,7 +122,7 @@ input[type=text]{font:15px var(--mono);color:var(--fg);background:var(--bg2);bor
 <div id="alarm" role="alertdialog" aria-live="assertive" aria-labelledby="alt" hidden><div class="al-box"><div class="al-k" id="alk2"></div><div class="al-t" id="alt"></div><div class="al-m" id="alm"></div><button id="alk" type="button">Quittieren</button></div></div>
 <div class="wrap">
 <div class="top">
-  <div class="brand"><h1>SK<b>//</b>ZONENBOARD</h1><small>Nach dem SK-System von Stefan Kassing</small></div>
+  <div class="brand"><h1>BÖRSENSYSTEM <b>NACH SK</b></h1><small>Nach dem SK-System von Stefan Kassing</small></div>
   <div class="status">
     <span class="pill" id="src">STARTET</span><span class="pill" id="clock">--:--:--</span>
     <button id="snd" type="button">Ton an</button><button id="ntf" type="button" class="off">Desktop-Hinweis</button>
@@ -453,7 +453,7 @@ function showOverlay(o){
 function ackAlarm(){clearInterval(alarmTimer);clearInterval(titleTimer);alarmTimer=titleTimer=null;document.title=baseTitle;$('alarm').hidden=true;try{navigator.vibrate&&navigator.vibrate(0)}catch(x){}}
 function pushNtfy(o){
   const t=(AL.nt||'').trim();if(!t||window.claude)return;
-  try{fetch('https://ntfy.sh/'+encodeURIComponent(t),{method:'POST',body:o.title+'\n'+o.text,headers:{'Title':'SK Board '+o.head,'Priority':o.strong?'urgent':'default','Tags':o.cls==='short'?'chart_with_downwards_trend':'chart_with_upwards_trend'}}).catch(()=>{})}catch(x){}
+  try{fetch('https://ntfy.sh/'+encodeURIComponent(t),{method:'POST',body:o.title+'\n'+o.text,headers:{'Title':'Boersensystem SK '+o.head,'Priority':o.strong?'urgent':'default','Tags':o.cls==='short'?'chart_with_downwards_trend':'chart_with_upwards_trend'}}).catch(()=>{})}catch(x){}
 }
 async function setWake(){
   try{if(wake){await wake.release();wake=null}

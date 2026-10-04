@@ -1,6 +1,6 @@
 {
-  "name": "SK Zonenboard",
-  "short_name": "SK Board",
+  "name": "Börsensystem nach SK",
+  "short_name": "Börse SK",
   "description": "Handelssignale nach dem SK-System: Long- und Short-Einstiegsbereiche für Krypto-Coins",
   "lang": "de",
   "start_url": "./",

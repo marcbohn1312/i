@@ -1,5 +1,5 @@
 // Offline-Hülle der App. Kursdaten werden nie zwischengespeichert.
-const V = 'sk-board-v2';
+const V = 'sk-board-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'handbuch.pdf'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
