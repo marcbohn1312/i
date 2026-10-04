@@ -146,7 +146,7 @@ canvas{width:100%;height:580px;display:block}
 @media(prefers-reduced-motion:reduce){.toast,.al-box,.dot{animation:none}.pat figure{transition:none}}
 
 /* Einfach-Ansicht: Ampel-Karte, Coin-Karten, Hilfe */
-body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#posp,#riskp,#tmp,#lvlp,#twop,#mpick,#mauto,#mhint){display:none!important}
+body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#riskp,#tmp,#lvlp,#twop,#mpick,#mauto,#mhint){display:none!important}
 .chip{min-width:112px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border-radius:14px;text-align:left}
 .chip .sy{font:700 15px var(--display);letter-spacing:.06em}
 .chip .pr{font:500 12px var(--mono);color:var(--muted)}
@@ -196,6 +196,22 @@ body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#posp,#riskp,#tmp,#lvlp,#twop,#m
 .in-box li b{display:block;font-weight:600}
 .in-box button{width:100%;font-size:15px;padding:14px;border-radius:12px}
 body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
+.ordctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.ord .o-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.ord .o-head b{font:700 20px var(--display);letter-spacing:.04em;margin-right:4px}
+.c2{font:600 12.5px var(--body);padding:3px 11px;border-radius:8px;border:1px solid var(--line-s);color:var(--fg);background:rgba(255,255,255,.04)}
+.c2.short{color:var(--short);background:var(--short-bg);border-color:rgba(255,75,134,.5)}.c2.long{color:var(--long);background:var(--long-bg);border-color:rgba(34,240,168,.5)}
+.o-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
+.o-grid>div{min-width:0}
+.o-grid small{display:block;font:500 12.5px var(--body);color:var(--muted);border-bottom:1px dashed rgba(129,151,189,.45);width:max-content;max-width:100%;padding-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.o-grid b{display:block;font:600 17px var(--mono);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o-grid .tp b{color:var(--long)}.o-grid .sl b{color:var(--short)}.o-grid .lq b{color:var(--wait)}
+.o-warn{margin:14px 0 0;padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.45}
+.o-warn.bad{background:var(--short-bg);border:1px solid rgba(255,75,134,.5);color:#ffd5e3}
+.o-warn.ok{background:var(--long-bg);border:1px solid rgba(34,240,168,.35);color:var(--fg)}
+.o-warn.mid{background:var(--wait-bg);border:1px solid rgba(255,203,92,.4);color:var(--fg)}
+.o-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+@media(max-width:420px){.o-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* Handy: Tab-Leiste unten */
 #tabs{display:none}
 @media(max-width:700px){
@@ -242,7 +258,7 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
   <div class="cfg-group"><h3>Konto und Risiko</h3>
     <label for="acc">Konto (USDT)<input id="acc" type="number" min="10" step="10" value="1000"></label>
     <label for="rk"><span>Risiko je Trade <span class="v" id="rkv">1</span> %</span><input id="rk" type="range" min="0.25" max="3" step="0.25" value="1"></label>
-    <label for="mh"><span>Max. Hebel <span class="v" id="mhv">10</span>x</span><input id="mh" type="range" min="1" max="50" step="1" value="10"></label>
+    <label for="mh"><span>Max. Hebel bei Automatik <span class="v" id="mhv">10</span>x</span><input id="mh" type="range" min="1" max="50" step="1" value="10"></label>
     <label for="dl"><span>Tagesverlust <span class="v" id="dlv">3</span> %</span><input id="dl" type="range" min="1" max="10" step="0.5" value="3"></label>
     <label for="hr"><span>Gesamtrisiko <span class="v" id="hrv">5</span> %</span><input id="hr" type="range" min="1" max="10" step="0.5" value="5"></label>
   </div>
@@ -280,7 +296,13 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
     <section data-o="5" class="panel" id="mtfp"><h2>Zeitebenen-Check</h2><div id="mtf" class="rlist"></div><p class="note" style="margin-top:8px">Tradebook: von der übergeordneten Ebene zur kleineren Ebene analysieren und dort bestätigen. Der Check ist eine Anzeige und sperrt kein Signal.</p></section>
     <section data-o="8" class="panel" id="patp"><h2>SK-Muster</h2><div class="pat" id="pat"></div>
       <p class="note" style="margin-top:8px">Vorgegebenes SK-Muster: Strecke 0-A, Korrektur nach B in die Zone 0,5 bis 0,667 (A gilt ab dem 0,382er Level als bestätigt), danach Bewegung C in die Zielzone 161,8 bis 200 % der trendbasierten Extension ab B.</p></section>
-    <section data-o="6" class="panel" id="posp"><h2>Positionsgröße und Hebel</h2><div id="pd"></div><p class="note" id="pn" style="margin-top:10px"></p></section>
+    <section data-o="1" class="panel" id="posp"><h2>Deine Order für die Börsen-App</h2><div class="ordctl">
+      <label for="mm">Margin-Modus<select id="mm"><option value="iso" selected>Isoliert</option><option value="cross">Cross</option></select></label>
+      <label for="lm">Hebel<select id="lm"><option value="auto" selected>Automatisch</option><option value="fix">Fest</option></select></label>
+      <label for="lf">Fester Hebel (x)<input id="lf" type="number" min="1" max="125" step="1" value="50"></label>
+      <label for="mo">Margin (USDT) anpassen<input id="mo" type="number" min="0" step="any" placeholder="automatisch"></label>
+    </div>
+    <div id="pd"></div><details class="how" id="pdet"><summary>Details und Hinweise</summary><div id="pdd"></div><p class="note" id="pn" style="margin-top:10px"></p></details></section>
     <section data-o="7" class="panel" id="riskp"><h2>Risikomanagement</h2><div id="rc"></div>
       <h2 style="margin-top:16px">Serie von Verlusttrades</h2>
       <div class="tw"><table><thead><tr><th>Verluste</th><th>Restkonto</th><th>Drawdown</th><th>Nötiger Gewinn</th></tr></thead><tbody id="dd"></tbody></table></div>
@@ -593,7 +615,7 @@ function beep(up){if(!sound)return;try{actx=actx||new (window.AudioContext||wind
 
 /* ---------- Anzeige ---------- */
 function cur(){return custom?{candles:custom.candles,live:false,src:'Eigene CSV',ts:Date.now(),s:custom.s,err:''}:board[sel]}
-function pick(c){sel=c;custom=null;picking=0;hint('');$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
+function pick(c){sel=c;custom=null;picking=0;hint('');$('mo').value='';$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
 function sigCls(c){const b=board[c],s=b&&b.s;if(!s)return'';const d=s.dir!=='none'?s.dir:(s.alt&&s.alt.dir!=='none'?s.alt.dir:'');return d==='long'?'sl':d==='short'?'ss':''}
 function chipInfo(c){
   const b=board[c],s=b&&b.s;if(!s||!s.seq)return{t:'–',k:'',p:s?fmt(s.last):'…'};
@@ -666,11 +688,12 @@ function renderHero(s,b,c){
   const acc=+$('acc').value||0,risk=c?c.fR:acc*(+$('rk').value/100),gain=risk*s.crv;
   const plan=lbl=>[['e',lbl,fmt(s.lv.entry),'Hier steigst du ein.'],['s','Verlustgrenze',fmt(s.lv.sl),'Höchstens '+fmtU(risk)+' USDT Verlust.'],['t','Gewinnziel',fmt(s.lv.tp1),'Möglich: '+fmtU(gain)+' USDT Gewinn.']]
     .map(r=>`<div class="${r[0]}"><small>${r[1]}</small><b>${r[2]}</b><em>${r[3]}</em></div>`).join('');
-  const steps=()=>{const n=c?c.fN:0,hb=c?(c.safe>1?'Hebel '+c.safe+'x':'ohne Hebel (1x)'):'';
-    return [`Öffne deine Börse und wähle ${sel}/USDT.`,`Eröffne eine ${tl?'Kauf-Position (Long)':'Verkaufs-Position (Short)'} mit etwa ${fmtU(n)} USDT, ${hb}.`,`Setze die Verlustgrenze (Stop-Loss) auf ${fmt(s.lv.sl)}.`,`Setze das Gewinnziel (Take-Profit) auf ${fmt(s.lv.tp1)}.`,'Wenn beides gesetzt ist, musst du nichts weiter tun.']};
+  const steps=()=>{const q=c?fmtQ(c.units):'',hb=c?(c.safe>1?'Hebel '+c.safe+'x':'ohne Hebel (1x)'):'';
+    return [`Öffne deine Börse und wähle ${sel}USDT (Perpetual/Futures).`,`Stelle ${c&&c.iso===false?'Cross':'Isoliert'} und ${hb} ein. Eröffne eine ${tl?'Long-Position (Kaufen)':'Short-Position (Verkaufen)'} mit ${q} ${sel} und ${c?fmtU(c.M):''} USDT Margin.`,`Setze die Verlustgrenze (Stop-Loss) auf ${fmt(s.lv.sl)}.`,`Setze das Gewinnziel (Take-Profit) auf ${fmt(s.lv.tp1)}.`,'Wenn beides gesetzt ist, musst du nichts weiter tun.']};
   if(s.dir!=='none'){
     if(s.state==='counter'){set(tl?'long':'short',tl?'up':'dn',tl?'Kaufen':'Verkaufen',`${sel} hat sein Gewinnziel erreicht und könnte jetzt umdrehen. Das System erlaubt einen Gegen-Handel, ${sideTxt}. Das ist riskanter. Anfänger lassen es besser aus.`)}
     else set(tl?'long':'short',tl?'up':'dn',tl?'Kaufen':'Verkaufen',`${sel} steht in der ${zone}. Das System erlaubt jetzt, ${sideTxt}. Chance zu Risiko: ${s.crv.toFixed(1)} zu 1.`);
+    if(c&&c.liqState==='fail'){$('htext').textContent+=' ACHTUNG: Mit deinen Hebel-Einstellungen würde die Position vor der Verlustgrenze liquidiert. Siehe „Deine Order“.'}
     $('hplan').innerHTML=plan('Einstieg');$('hsteps').innerHTML=steps().map(t=>`<li>${t}</li>`).join('');$('hhow').hidden=false;return}
   if(s.state==='wait'){
     set('wait','wt','Warten',`Noch nicht. Der Kurs muss erst ${long?'ein Stück fallen':'ein Stück steigen'}, bis er in der ${zone} ankommt. Dann meldet sich das System.`);
@@ -716,24 +739,53 @@ function renderMain(){
   $('zt').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${fmt(r[1])}</td><td><span class="tag ${r[3]}">${r[2]}</span></td></tr>`).join('');
   const c=renderPos(s);renderRisk(s,c);renderMtf();renderZones(s);renderHero(s,b,c);draw(b);
 }
+function fmtQ(u){return u.toLocaleString('de-DE',{maximumFractionDigits:u>=100?2:u>=1?4:6})}
 function renderPos(s){
   const acc=+$('acc').value||0,rk=+$('rk').value/100,mh=+$('mh').value;
   $('rkv').textContent=$('rk').value;$('mhv').textContent=$('mh').value;
-  const E=s.entries,each=acc*rk/E.length;
-  const rows=E.map(x=>{const dist=Math.abs(x.e-x.sl),notional=dist>0?each/dist*x.e:0;return{...x,dist,distPct:dist/x.e,notional}});
-  const total=rows.reduce((a,r)=>a+r.notional,0),maxPct=Math.max(...rows.map(r=>r.distPct)),need=total/acc;
-  const lev=Math.max(1,Math.min(mh,Math.ceil(need))),maxByLiq=Math.floor(0.5/maxPct),safe=Math.max(1,Math.min(lev,maxByLiq));
-  const capped=total>acc*safe*0.999,f=capped?acc*safe/total:1,fN=total*f,fR=acc*rk*f;
-  $('pd').innerHTML='<dl>'+[['Richtung',(s.side===1?'Long':'Short')+(s.state==='counter'?' (Gegentrade)':'')],['Strategie',s.multi?'Multi-Trade, 4 Einstiege':'1-Trade'],['Status',s.dir==='none'?'Plan, noch kein Signal':'Signal'],['Risiko in USDT',fmtU(fR)+' ('+pctS(fR/acc)+')'],
-    ['Abstand zum Stop',pctS(maxPct)],['Positionsgröße gesamt',fmtU(fN)+' USDT'],['Menge gesamt',(fN/s.lv.entry).toPrecision(4)+' '+(custom?'':sel)],['Empfohlener Hebel',safe+'x'],
-    ['Nötige Margin',fmtU(fN/safe)+' USDT'],['Liquidation ca.',(100/safe).toFixed(1).replace('.',',')+' % entfernt'],['Break-even-Marke (1R)',fmt(s.lv.entry+s.side*Math.abs(s.lv.entry-s.lv.sl))],['Doppelter Profit (2R)',fmt(s.lv.entry+s.side*2*Math.abs(s.lv.entry-s.lv.sl))]].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>'
-    +(s.multi?`<div class="tw" style="margin-top:10px"><table><thead><tr><th>Level</th><th>Einstieg</th><th>Stop</th><th>Größe USDT</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${String(r.r).replace('.',',')}</td><td>${fmt(r.e)}</td><td>${fmt(r.sl)}</td><td>${fmtU(r.notional*f)}</td></tr>`).join('')}</tbody></table></div>`:'');
-  let t=s.multi?'Multi-Trade: Das Risiko wird gleichmäßig auf die vier Einstiegslevel verteilt. Größe je Einstieg = Risiko ÷ 4 ÷ Stop-Abstand.':'Größe = Risiko ÷ Stop-Abstand.';
-  t+=' Der Hebel ist so gewählt, dass die Liquidation mindestens doppelt so weit wie der Stop entfernt liegt.';
-  if(capped)t+=' Die Position wurde verkleinert, weil Hebel und Konto sie sonst nicht tragen.';
-  if(safe>5)t+=' Hoher Hebel: Schon kleine Gegenbewegungen und Gebühren belasten das Konto stark.';
-  t+=' Break-even: Das Tradebook sagt, den Stop nicht nachzuziehen, außer auf Break-even. Die Marken 1R und 2R sind meine Auslegung, eine feste Marke nennt das Tradebook nicht.';
-  $('pn').textContent=t;return{fR,safe,capped,maxByLiq,acc,rk,fN};
+  const d=s.side,E=s.entries,riskAmt=acc*rk,each=riskAmt/E.length,mmr=.0057;       // Erhaltungsmargin ca. 0,57 % (aus deiner Börsen-Ansicht abgeleitet)
+  const rows=E.map(x=>{const dist=Math.abs(x.e-x.sl),units=dist>0?each/dist:0;return{...x,dist,units,notional:units*x.e}});
+  let units=rows.reduce((a,r)=>a+r.units,0);const avg=units?rows.reduce((a,r)=>a+r.units*r.e,0)/units:s.lv.entry;
+  const stopDist=Math.max(...rows.map(r=>r.dist)),stopPct=stopDist/avg;
+  let N=units*avg,mm=N*mmr,risk=riskAmt;
+  const Mrec=2*risk+mm;                                      // Liquidation mindestens doppelt so weit wie der Stop
+  const fix=$('lm').value==='fix',iso=$('mm').value==='iso',Mo=+$('mo').value||0;
+  let L=fix?Math.max(1,Math.min(125,Math.round(+$('lf').value||1))):Math.max(1,Math.min(mh,Math.floor(N/Mrec)));
+  let M=Mo>0?Mo:N/L;
+  let capped=false;
+  if(M>acc&&acc>0){const f=acc/M;units*=f;N*=f;mm*=f;risk*=f;M=acc;capped=true;rows.forEach(r=>{r.units*=f;r.notional*=f})}
+  const Mini=N/L;                                           // nötige Anfangsmargin für den Hebel
+  const eff=N/M;                                            // tatsächlicher Hebel mit eingezahlter Margin
+  const avail=iso?M:acc;
+  let liq=avg-d*(avail-mm)/units;if(liq<0)liq=0;
+  const dl=Math.abs(avg-liq),beyond=d===1?liq<s.lv.sl:liq>s.lv.sl;
+  const liqState=!beyond?'fail':dl>=2*stopDist*.999?'ok':'warn';
+  const marginLow=M<Mini*.999;
+  const coin=custom?'CSV':sel,unit=custom?'Menge':sel;
+  const tp=s.lv.tp1,sl=s.lv.sl;
+  const chip=(t,c)=>`<span class="c2 ${c||''}">${t}</span>`;
+  const cell=(l,v,c)=>`<div class="${c||''}"><small>${l}</small><b>${v}</b></div>`;
+  let warn='';
+  if(liqState==='fail')warn=`<p class="o-warn bad"><b>Achtung:</b> Mit diesem Hebel und dieser Margin würde deine Position <b>vor</b> der Verlustgrenze liquidiert (Liq. ${fmt(liq)}, Stop ${fmt(sl)}). Erhöhe die Margin auf mindestens ${fmtU(Mrec)} USDT oder senke den Hebel.</p>`;
+  else if(liqState==='warn')warn=`<p class="o-warn mid">Die Liquidation liegt hinter dem Stop, aber knapp. Empfohlen sind mindestens ${fmtU(Mrec)} USDT Margin, dann liegt sie doppelt so weit weg wie der Stop.</p>`;
+  else warn=`<p class="o-warn ok">Die Liquidation liegt mehr als doppelt so weit weg wie die Verlustgrenze. Das ist ein sicherer Abstand.</p>`;
+  if(marginLow)warn+=`<p class="o-warn bad">Die Margin (${fmtU(M)} USDT) reicht für ${L}x nicht aus. Nötig sind mindestens ${fmtU(Mini)} USDT.</p>`;
+  $('pd').innerHTML=`<div class="ord"><div class="o-head"><b>${coin}USDT</b>${chip(d===1?'Long':'Short',d===1?'long':'short')}${chip(iso?'Isoliert':'Cross')}${chip(Math.round(eff*10)/10===Math.round(eff)?Math.round(eff)+'x':eff.toFixed(1).replace('.',',')+'x')}${s.dir==='none'?chip('Plan'):chip('Signal',d===1?'long':'short')}</div>
+  <div class="o-grid">${cell('Einstiegspreis',fmt(avg))}${cell('Letzter Preis',fmt(s.last))}${cell('Gesamtvol. (USDT)',fmtU(N))}
+  ${cell('Position ('+unit+')',fmtQ(units))}${cell('Gesch. Liq. Preis',fmt(liq),'lq')}${cell('Risiko (USDT)',fmtU(risk))}
+  ${cell('Margin (USDT)',fmtU(M))}${cell('Take Profit',fmt(tp),'tp')}${cell('Stop Loss',fmt(sl),'sl')}</div>${warn}
+  <div class="o-btns"><button type="button" id="mrec">Empfohlene Margin übernehmen</button><button type="button" id="ocopy" class="off">Werte kopieren</button></div></div>`;
+  $('mrec').onclick=()=>{$('mo').value=(Math.ceil(Mrec*100)/100).toFixed(2);renderMain()};
+  $('ocopy').onclick=()=>{const t=`${coin}USDT ${d===1?'Long':'Short'} ${iso?'Isoliert':'Cross'} ${Math.round(eff)}x\nEinstiegspreis ${fmt(avg)}\nPosition ${fmtQ(units)} ${unit}\nMargin ${fmtU(M)} USDT\nTake Profit ${fmt(tp)}\nStop Loss ${fmt(sl)}\nGesch. Liq. Preis ${fmt(liq)}`;
+    try{navigator.clipboard.writeText(t).then(()=>{$('ocopy').textContent='Kopiert'},()=>{$('ocopy').textContent='Nicht möglich'})}catch(e){$('ocopy').textContent='Nicht möglich'}};
+  $('pdd').innerHTML='<dl>'+[['Strategie',s.multi?'Multi-Trade, 4 Einstiege':'1-Trade'],['Abstand zum Stop',pctS(stopPct)],['Nötige Anfangsmargin für '+L+'x',fmtU(Mini)+' USDT'],['Empfohlene Margin',fmtU(Mrec)+' USDT'],['Erhaltungsmargin (geschätzt)',fmtU(mm)+' USDT'],['Break-even-Marke (1R)',fmt(s.lv.entry+d*Math.abs(s.lv.entry-s.lv.sl))],['Doppelter Profit (2R)',fmt(s.lv.entry+d*2*Math.abs(s.lv.entry-s.lv.sl))]].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>'
+    +(s.multi?`<div class="tw" style="margin-top:10px"><table><thead><tr><th>Level</th><th>Einstieg</th><th>Stop</th><th>Größe USDT</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${String(r.r).replace('.',',')}</td><td>${fmt(r.e)}</td><td>${fmt(r.sl)}</td><td>${fmtU(r.notional)}</td></tr>`).join('')}</tbody></table></div>`:'');
+  let t=(s.multi?'Multi-Trade: Das Risiko wird gleichmäßig auf die vier Einstiege verteilt. ':'')+'Position = Risiko ÷ Abstand zum Stop. Margin und Liquidationspreis sind Schätzungen für '+(iso?'isolierte Margin':'Cross-Margin (mit deinem ganzen Konto als Sicherheit)')+'. Die echte Liquidation hängt von deiner Börse, den Gebühren und der Risikostufe ab. Prüfe den Wert dort.';
+  if(capped)t+=' Die Position wurde verkleinert, weil die Margin dein Konto übersteigen würde.';
+  if(eff>5)t+=' Hoher Hebel: Schon kleine Gegenbewegungen und Gebühren belasten das Konto stark.';
+  t+=' Break-even: Den Stop nicht nachziehen, außer auf Break-even. Die Marken 1R und 2R sind meine Auslegung.';
+  $('pn').textContent=t;
+  return{fR:risk,safe:Math.round(eff)||1,capped,maxByLiq:liqState==='ok'?2:liqState==='warn'?1:0,acc,rk,fN:N,M,liq,iso,Mrec,units,liqState,L:Math.round(eff)||1};
 }
 function renderRisk(s,c){
   const dl=+$('dl').value/100,hr=+$('hr').value/100;$('dlv').textContent=$('dl').value;$('hrv').textContent=$('hr').value;$('mcv').textContent=$('mc').value;
@@ -741,7 +793,7 @@ function renderRisk(s,c){
   const ch=[['Risiko je Trade',pctS(c.rk),c.rk<=.03?'ok':'fail','Tradebook: maximal 1 bis 3 % riskieren. Bei kleinem Konto teilen.'],
     ['CRV bis Ziel 1',s.crv.toFixed(1)+' : 1',s.crv>=2?'ok':s.crv>=s.minCrv?'warn':'fail','Tradebook: 1:1 ist ok, 2:1 ist gut. Je höher, desto besser.'],
     ['Stop-Loss',fmt(s.lv.sl),'ok','Nie ohne Stop-Loss handeln. Er wird nicht nachgezogen, außer auf Break-even.'],
-    ['Liquidation hinter dem Stop',c.maxByLiq>=1?'Hebel '+c.safe+'x':'Stop zu weit',c.maxByLiq>=1?'ok':'fail','Liquidation mindestens doppelt so weit wie der Stop (eigene Regel).'],
+    ['Liquidation hinter dem Stop','Liq. '+fmt(c.liq),c.liqState==='ok'?'ok':c.liqState==='warn'?'warn':'fail','Die geschätzte Liquidation soll mindestens doppelt so weit entfernt liegen wie der Stop (eigene Regel).'],
     ['Tatsächliches Risiko',pctS(eff),c.capped?'warn':'ok',c.capped?'Kleiner als geplant, Hebel und Konto begrenzen die Größe.':'Entspricht deinem Risiko.'],
     ['Gesamtrisiko offen',pctS(eff)+' von '+pctS(hr),eff<=hr?'ok':'fail',eff<=hr?'Platz für '+Math.max(0,Math.floor((hr-eff)/Math.max(eff,1e-9)+1e-9))+' weitere Trades gleicher Größe (Diversifikation).':'Überschreitet dein Gesamtlimit.'],
     ['Tagesverlust-Limit',pctS(dl)+' = '+fmtU(c.acc*dl)+' USDT',eff<=dl?'ok':'fail','Nach '+Math.max(0,Math.floor(dl/Math.max(eff,1e-9)+1e-9))+' Verlusttrades am Tag Pause machen (eigene Regel).']];
@@ -942,7 +994,7 @@ $('tf').value='4h';renderTfs();
 $('coin').addEventListener('change',()=>pick($('coin').value));
 $('tf').addEventListener('change',()=>{renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
 ['sw','sm','pp','ps','mc'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
-['acc','rk','mh','dl','hr'].forEach(id=>$(id).addEventListener('input',renderMain));
+['acc','rk','mh','dl','hr','mm','lm','lf','mo'].forEach(id=>$(id).addEventListener('input',renderMain));
 function snd(){$('snd').textContent=sound?'Ton an':'Ton aus';$('snd').className=sound?'':'off'}
 $('snd').onclick=()=>{sound=!sound;store.set('sk_snd',sound);snd();if(sound)beep(true)};snd();
 $('ntf').onclick=()=>{try{Notification.requestPermission().then(p=>{$('ntf').textContent=p==='granted'?'Hinweis an':'Hinweis blockiert';$('ntf').className=p==='granted'?'':'off'})}catch(e){}};
