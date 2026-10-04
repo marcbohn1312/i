@@ -212,6 +212,23 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
 .o-warn.mid{background:var(--wait-bg);border:1px solid rgba(255,203,92,.4);color:var(--fg)}
 .o-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 @media(max-width:420px){.o-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ent{display:grid;grid-template-columns:1fr;gap:12px}
+.ent-card{border:1px solid var(--line-s);border-radius:14px;padding:14px 14px 12px;background:rgba(4,8,17,.35)}
+.ent-card.long{border-color:rgba(34,240,168,.55);background:linear-gradient(140deg,rgba(34,240,168,.10),rgba(4,8,17,.4))}
+.ent-card.short{border-color:rgba(255,75,134,.55);background:linear-gradient(140deg,rgba(255,75,134,.10),rgba(4,8,17,.4))}
+.ent-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ent-top b{font:700 17px var(--display);letter-spacing:.05em;text-transform:uppercase}
+.ent-card.long .ent-top b{color:var(--long)}.ent-card.short .ent-top b{color:var(--short)}
+.ent-main{display:grid;grid-template-columns:1fr auto;align-items:end;gap:6px 12px;margin:10px 0 8px}
+.ent-main small{display:block;font:500 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ent-main b{font:700 26px/1.1 var(--mono)}
+.ent-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ent-rows>div{background:rgba(255,255,255,.04);border-radius:10px;padding:7px 9px;min-width:0}
+.ent-rows small{display:block;font:500 10.5px var(--body);letter-spacing:.03em;white-space:nowrap;text-transform:uppercase;color:var(--muted)}
+.ent-rows b{display:block;font:600 13.5px var(--mono);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ent-rows .s b{color:var(--short)}.ent-rows .t b{color:var(--long)}
+.ent-card.dim{opacity:.62}
+.ent-note{margin:8px 0 0;font-size:13px;color:var(--muted)}
 /* Handy: Tab-Leiste unten */
 #tabs{display:none}
 @media(max-width:700px){
@@ -285,6 +302,7 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
       <div class="h-plan" id="hplan"></div>
       <details class="how" id="hhow"><summary>So gehst du vor</summary><ol id="hsteps"></ol></details>
     </section>
+    <section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section>
     <section data-o="1" class="panel verdict wait" id="verdict" aria-live="polite">
       <div class="v-label" id="vl">SEQUENZ</div>
       <div class="v-main" id="vm">–</div>
@@ -721,7 +739,7 @@ function renderMain(){
   const v=$('verdict'),vm=$('vm'),vs=$('vs');
   if(!seq){v.className='panel verdict wait';$('vl').textContent='SEQUENZ';vm.textContent='Keine Sequenz';
     vs.textContent=s.manualInvalid?'Die selbst gesetzte Sequenz ist ungültig, weil Punkt 0 überschritten wurde. Setze neue Punkte oder wähle „Automatik“.':'Aktuell gibt es keine gültige Strecke 0-A. Ändere Zeitebene oder Swing-Länge oder setze die Punkte selbst.';
-    renderHero(s,b,null);renderZones(s);$('plan').innerHTML='';$('vd').innerHTML='';$('zt').innerHTML='';$('pd').innerHTML='<dl><dt>Status</dt><dd>Kein Signal</dd></dl>';$('pn').textContent='';$('rc').innerHTML='';$('dd').innerHTML='';$('rn').textContent='';draw(b);return}
+    renderHero(s,b,null);renderEntries(s);renderZones(s);$('plan').innerHTML='';$('vd').innerHTML='';$('zt').innerHTML='';$('pd').innerHTML='<dl><dt>Status</dt><dd>Kein Signal</dd></dl>';$('pn').textContent='';$('rc').innerHTML='';$('dd').innerHTML='';$('rn').textContent='';draw(b);return}
   const long=seq.d===1,zn=long?'Kaufzone':'Verkaufszone',side=long?'Long':'Short',tside=s.side===1?'Long':'Short';
   v.className='panel verdict '+(s.dir==='none'?'wait':s.dir);
   $('vl').textContent=side.toUpperCase()+'-SEQUENZ'+(seq.kind==='neu'?'':' ('+seq.kind.toUpperCase()+')')+' · '+zn.toUpperCase()+' '+fmt(Math.min(s.lvl(.5),s.lvl(.667)))+' BIS '+fmt(Math.max(s.lvl(.5),s.lvl(.667)));
@@ -738,7 +756,7 @@ function renderMain(){
     (s.counter?[1.618,1.809,2].map((t,i)=>[(t*100).toFixed(1).replace('.',',')+' % (alt)',s.counter.levels[i],'Gegentrade-Level','target']):[]),
     [['Stop-Loss',s.lv.sl,s.state==='counter'?'Über 200er':s.multi?'Fest (Pips)':'0,786','mid'],['Einstieg'+(s.state==='in'?' (aktuell)':' (Plan)'),s.lv.entry,'0,618 bzw. Kurs','mid']]);
   $('zt').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${fmt(r[1])}</td><td><span class="tag ${r[3]}">${r[2]}</span></td></tr>`).join('');
-  const c=renderPos(s);renderRisk(s,c);renderMtf();renderZones(s);renderHero(s,b,c);draw(b);
+  const c=renderPos(s);renderRisk(s,c);renderMtf();renderZones(s);renderEntries(s);renderHero(s,b,c);draw(b);
 }
 function fmtQ(u){return u.toLocaleString('de-DE',{maximumFractionDigits:u>=100?2:u>=1?4:6})}
 function renderPos(s){
@@ -905,11 +923,11 @@ function draw(b){
       g.fillStyle=hexA(BG,.78);rrect(g,Math.max(pad.l,Math.min(x-w/2,pad.l+iw-w)),ty-9,w,18,9);g.fill();g.fillStyle=AC;g.fillText(txt,Math.max(pad.l+w/2,Math.min(x,pad.l+iw-w/2)),ty)};
     pt(pO,'0',pO.type==='H');pt(pA,'A',pA.type==='H');if(pB&&pB.i>pA.i&&(PRO||!NARROW))pt(pB,'B',!long);
     /* Linien Einstieg, Stop, Ziel */
-    const lines=[['Einstieg',s.lv.entry,f,'E'],['Stop',s.lv.sl,S,'S'],['Ziel 1',s.lv.tp1,T,'Z']];if(PRO)lines.push(['Ziel 2',s.lv.tp2,T,'Z2']);
-    lines.filter(r=>!(r[0]==='Einstieg'&&s.state==='in')).forEach(([t,p,c,k])=>{
+    const lines=[['Einstieg',s.lv.entry,long?L:S,'E'],['Stop',s.lv.sl,S,'S'],['Ziel 1',s.lv.tp1,T,'Z']];if(PRO)lines.push(['Ziel 2',s.lv.tp2,T,'Z2']);
+    lines.forEach(([t,p,c,k])=>{
       const out=(p>pmax)||(p<pmin),y=Yc(p);
       g.save();g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash([7,4]);g.globalAlpha=.85;g.beginPath();g.moveTo(pad.l+cwid*.62,y);g.lineTo(pad.l+iw,y);g.stroke();g.restore();
-      const nm=PRO?(NARROW?{'Einstieg':'E','Stop':'SL','Ziel 1':'Z1','Ziel 2':'Z2'}[t]:t):(NARROW?{'Einstieg':'Ein','Stop':'Stop','Ziel 1':'Ziel'}[t]:{'Einstieg':'Einstieg','Stop':'Stop','Ziel 1':'Ziel'}[t]);
+      const eN=(s.side===1?'Long':'Short'),nm=NARROW?{'Einstieg':eN[0]+' ab','Stop':'Stop','Ziel 1':'Ziel','Ziel 2':'Z2'}[t]:{'Einstieg':eN+' ab','Stop':'Stop','Ziel 1':'Ziel','Ziel 2':'Ziel 2'}[t];
       tags.push({y,c,text:nm+' '+fmt(p),dark:t!=='Einstieg',arrow:out&&!NARROW?(p>pmax?'▲ ':'▼ '):''});
     });
     /* Banner */
@@ -920,6 +938,9 @@ function draw(b){
     g.save();if(s.dir!=='none'){g.shadowColor=bc;g.shadowBlur=16}g.fillStyle=hexA(bc,s.dir!=='none'?.9:.16);rrect(g,pad.l,8,bw2,26,13);g.fill();g.restore();
     g.strokeStyle=bc;g.lineWidth=1.4;rrect(g,pad.l,8,bw2,26,13);g.stroke();g.fillStyle=s.dir!=='none'?'#031018':bc;g.fillText(txt2,pad.l+13,21.5);
   }
+  if(alt&&alt.lv){const ay=Yc(alt.lv.entry),ac=alt.seq.d===1?L:S;
+    g.save();g.strokeStyle=ac;g.lineWidth=1.6;g.setLineDash([7,4]);g.globalAlpha=.85;g.beginPath();g.moveTo(pad.l+cwid*.62,ay);g.lineTo(pad.l+iw,ay);g.stroke();g.restore();
+    tags.push({y:ay,c:ac,text:(NARROW?(alt.seq.d===1?'L':'S')+' ab':(alt.seq.d===1?'Long':'Short')+' ab')+' '+fmt(alt.lv.entry),dark:false})}
   /* Beschriftungen der Zonen (Einfach) mit Hintergrund */
   if(!PRO){g.font='700 11.5px '+css('--display');g.textAlign='left';
     zoneLbl.forEach(z=>{const t=NARROW?(z.t==='KAUFZONE'?'KAUFEN':z.t==='VERKAUFSZONE'?'VERKAUFEN':'ZIEL'):z.t,w=g.measureText(t).width+12;
@@ -938,6 +959,26 @@ function draw(b){
     g.fillStyle=(t.dark||t.now)?'#031018':f;g.save();g.beginPath();g.rect(x+4,t.y-10,w-6,20);g.clip();g.fillText((t.arrow||'')+t.text,x+9,t.y+.5);g.restore()});
 }
 
+function renderEntries(s){
+  const by={};[s,s.alt].forEach(x=>{if(x&&x.seq)by[x.seq.d]=x});
+  const card=d=>{
+    const x=by[d],long=d===1,cls=long?'long':'short',name=long?'Kaufen (Long)':'Verkaufen (Short)';
+    if(!x)return `<div class="ent-card ${cls}"><div class="ent-top"><b>${name}</b><span class="tag mid">Kein Muster</span></div><p class="ent-note">Für ${long?'steigende':'fallende'} Kurse erkennt das System bei ${sel} gerade keinen Einstieg.</p></div>`;
+    const lo=Math.min(x.lvl(.5),x.lvl(.667)),hi=Math.max(x.lvl(.5),x.lvl(.667));
+    let st,note='';
+    if(x.state==='counter'){st=['Gegen-Handel möglich','target'];note='Das Gewinnziel der Sequenz ist erreicht. Ein Gegen-Handel ist riskanter.'}
+    else if(x.dir!=='none'){st=['Jetzt möglich',cls];note='Der Kurs steht in der Zone. Das System erlaubt den Einstieg.'}
+    else if(x.state==='in'){st=['Zone erreicht','wait'];note='Die Chance zu Risiko ist zu klein. Das System rät ab.'}
+    else if(x.state==='wait'){st=['Noch '+pctS(x.dist,1),'wait'];note=`Der Kurs muss noch ${long?'fallen':'steigen'}, bis er die Zone erreicht.`}
+    else if(x.state==='unconf'){st=['Noch unklar','mid'];note='Das Muster ist noch nicht bestätigt.'}
+    else{st=['Zu spät','mid'];note='Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei.'}
+    const best=x.lvl(.618),multi=x.multi?x.entries.map(e=>fmt(e.e)).join(' / '):null;
+    return `<div class="ent-card ${cls}${x.state==='beyond'||x.state==='unconf'?' dim':''}"><div class="ent-top"><b>${name}</b><span class="tag ${st[1]}">${st[0]}</span></div>
+      <div class="ent-main"><div><small>Bester Einstiegspunkt</small><b>${fmt(best)}</b></div><div style="text-align:right"><small>Einstiegszone</small><span style="font:500 13.5px var(--mono)">${fmt(lo)} bis ${fmt(hi)}</span></div></div>
+      <div class="ent-rows"><div><small>Aktuell</small><b>${fmt(x.last)}</b></div><div class="s"><small>Verlustgrenze</small><b>${fmt(x.lv.sl)}</b></div><div class="t"><small>Gewinnziel</small><b>${fmt(x.lv.tp1)}</b></div></div>
+      ${multi?`<p class="ent-note">Einstiege (Multi-Trade): ${multi}</p>`:''}<p class="ent-note">${note}</p></div>`};
+  $('ent').innerHTML=card(1)+card(-1);
+}
 function renderZones(s){
   const by={};[s,s.alt].forEach(x=>{if(x&&x.seq)by[x.seq.d]=x});
   const row=d=>{
