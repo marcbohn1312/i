@@ -283,6 +283,7 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
     <label for="sm">Strategie<select id="sm"><option value="k786" selected>1-Trade: Stop knapp hinter 0,786</option><option value="pips">Multi-Trade: fester Stop in Pips</option></select></label>
     <div class="row2"><label for="pp">Stop in Pips<input id="pp" type="number" min="1" step="1" value="100"></label>
     <label for="ps">Pip-Größe (USDT)<input id="ps" type="number" min="0" step="any" placeholder="auto" list="pl"><datalist id="pl"><option value="1"><option value="0.1"><option value="0.01"><option value="0.0001"></datalist></label></div>
+    <label for="st">SK-Strenge<select id="st"><option value="sk" selected>Streng: mindestens 3 Struktur-Bestätigungen</option><option value="lock">Locker: ohne Struktur-Prüfung</option></select></label>
     <label for="mc"><span>Mindest-CRV <span class="v" id="mcv">1</span></span><input id="mc" type="range" min="1" max="3" step="0.5" value="1"></label>
   </div>
   <div class="cfg-group"><h3>Konto und Risiko</h3>
@@ -504,8 +505,10 @@ function analyse(cs,key){
   const L=analyseDir(cs,key,1,false),S=analyseDir(cs,key,-1,false);
   if(!L.seq&&!S.seq)return L;
   if(!L.seq||!S.seq){const p=L.seq?L:S;return p}
-  const sc=x=>x.dir!=='none'?3:x.state==='in'?2:x.state==='wait'?1:0;
-  const p=sc(L)!==sc(S)?(sc(L)>sc(S)?L:S):(L.seq.A.i>=S.seq.A.i?L:S),q=p===L?S:L;
+  const sc=x=>x.dir!=='none'?3:x.state==='in'?2:x.state==='wait'?1:0,kf=x=>[sc(x),x.seq.conf||0,x.seq.A.i];
+  const kL=kf(L),kS=kf(S);let lw=0;for(let i=0;i<3&&!lw;i++){if(kL[i]!==kS[i])lw=kL[i]>kS[i]?1:-1}
+  const p=lw>=0?L:S,q=p===L?S:L;
+  if(p.dir!=='none'&&q.dir!=='none'){q.dir='none';q.gate='against'}   // Tradebook: Mit der Sequenz handeln ist weniger riskant als gegen sie
   p.alt=q;p.view0=Math.min(p.view0,q.view0);return p;
 }
 function analyseDir(cs,key,wantD,useManual){
@@ -542,7 +545,9 @@ function analyseDir(cs,key,wantD,useManual){
     }
   }
   const risk=Math.abs(entry-sl);s.crv=risk>0?Math.abs(s.lv.tp1-entry)/risk:0;
-  s.dir=(s.state==='in'||s.state==='counter')&&s.crv>=s.minCrv?(s.side===1?'long':'short'):'none';
+  s.conf=seq.conf;
+  s.gate=(s.state==='in'&&$('st').value==='sk'&&seq.conf!=null&&seq.conf<3)?'conf':'';
+  s.dir=(s.state==='in'||s.state==='counter')&&s.crv>=s.minCrv&&!s.gate?(s.side===1?'long':'short'):'none';
   s.view0=Math.max(0,Math.min(O.i-12,cs.length-70),cs.length-120);
   return s;
 }
@@ -678,6 +683,8 @@ function renderScanner(){renderChips();
       if(s.dir!=='none')st=`<span class="tag ${s.dir} sig">${s.dir==='long'?'Long':'Short'} ${s.state==='counter'?'Gegentrade':'Signal'}</span>`;
       else if(s.state==='counter')st='<span class="tag target">Zielgebiet</span>';
       else if(s.state==='wait'){st='<span class="tag wait">Warten</span>';ds=pctS(s.dist,1)}
+      else if(s.gate==='conf'){st='<span class="tag mid">Struktur schwach</span>'}
+      else if(s.gate==='against'){st='<span class="tag mid">Gegen Sequenz</span>'}
       else if(s.state==='in'){st='<span class="tag mid">CRV zu klein</span>'}
       else if(s.state==='unconf'){st='<span class="tag mid">A unbestätigt</span>';ds=pctS(s.dist,1)}
       else st='<span class="tag mid">Zu tief</span>'}
@@ -732,6 +739,8 @@ function renderHero(s,b,c){
     $('hmeter').hidden=false;$('hml').textContent='Abstand zur '+zone;$('hmv').textContent=pctS(s.dist,1);$('hmf').style.width=Math.round(Math.max(4,Math.min(100,100*(1-s.dist/.08))))+'%';
     $('hplan').innerHTML=plan('Geplanter Einstieg');
     $('hsteps').innerHTML=['Noch nichts tun.','Schalte unter „Einstellungen“ den Alarm an (Alarm bis Quittieren).','Lass die App offen. Bei Erreichen der Zone zeigt sie dir die Schritte.'].map(t=>`<li>${t}</li>`).join('');$('hhow').hidden=false;return}
+  if(s.gate==='conf'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Struktur ist zu schwach: nur ${s.conf} von mindestens 3 Bestätigungen. Die SK-Regel verlangt mehr, das System rät ab.`);return}
+  if(s.gate==='against'){set('wait','no','Kein Handel','Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.');return}
   if(s.state==='in'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Chance zu Risiko ist mit ${s.crv.toFixed(1)} zu 1 zu klein. Das System rät ab.`);return}
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
   set('wait','no','Zu spät','Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
@@ -980,13 +989,15 @@ function renderEntries(s){
     const lo=Math.min(x.lvl(.5),x.lvl(.667)),hi=Math.max(x.lvl(.5),x.lvl(.667));
     let st,note='';
     if(x.state==='counter'){st=['Gegen-Handel möglich','target'];note='Das Gewinnziel der Sequenz ist erreicht. Ein Gegen-Handel ist riskanter.'}
+    else if(x.gate==='against'){st=['Gegen die Sequenz','mid'];note='Die andere Richtung hat gerade das Signal. Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.'}
+    else if(x.gate==='conf'){st=['Struktur zu schwach','mid'];note=`Nur ${x.conf} von mindestens 3 Struktur-Bestätigungen. Die SK-Regel verlangt mehr.`}
     else if(x.dir!=='none'){st=['Jetzt möglich',cls];note='Der Kurs steht in der Zone. Das System erlaubt den Einstieg.'}
     else if(x.state==='in'){st=['Zone erreicht','wait'];note='Die Chance zu Risiko ist zu klein. Das System rät ab.'}
     else if(x.state==='wait'){st=['Noch '+pctS(x.dist,1),'wait'];note=`Der Kurs muss noch ${long?'fallen':'steigen'}, bis er die Zone erreicht.`}
     else if(x.state==='unconf'){st=['Noch unklar','mid'];note='Das Muster ist noch nicht bestätigt.'}
     else{st=['Zu spät','mid'];note='Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei.'}
     const best=x.lvl(.618),multi=x.multi?x.entries.map(e=>fmt(e.e)).join(' / '):null;
-    return `<div class="ent-card ${cls}${x.state==='beyond'||x.state==='unconf'?' dim':''}"><div class="ent-top"><b>${name}</b><span class="tag ${st[1]}">${st[0]}</span></div>
+    return `<div class="ent-card ${cls}${x.state==='beyond'||x.state==='unconf'||x.gate?' dim':''}"><div class="ent-top"><b>${name}</b><span class="tag ${st[1]}">${st[0]}</span></div>
       <div class="ent-main"><div><small>Bester Einstiegspunkt</small><b>${fmt(best)}</b></div><div style="text-align:right"><small>Einstiegszone</small><span style="font:500 13.5px var(--mono)">${fmt(lo)} bis ${fmt(hi)}</span></div></div>
       <div class="ent-rows"><div><small>Aktuell</small><b>${fmt(x.last)}</b></div><div class="s"><small>Verlustgrenze</small><b>${fmt(x.lv.sl)}</b></div><div class="t"><small>Gewinnziel</small><b>${fmt(x.lv.tp1)}</b></div></div>
       ${multi?`<p class="ent-note">Einstiege (Multi-Trade): ${multi}</p>`:''}<p class="ent-note">${note}</p></div>`};
@@ -998,7 +1009,7 @@ function renderZones(s){
     const x=by[d],name=d===1?'Long':'Short',cls=d===1?'long':'short';
     if(!x)return `<div class="rrow"><div><b>${name}-Einstieg</b></div><span class="tag mid">Keine Sequenz</span><span class="d">Aktuell gibt es keine gültige ${name}-Sequenz.</span></div>`;
     const lo=Math.min(x.lvl(.5),x.lvl(.667)),hi=Math.max(x.lvl(.5),x.lvl(.667));
-    const st=x.state==='counter'?['Gegentrade-Lage','target']:x.dir!=='none'?['Signal',cls]:x.state==='in'?['In der Zone','wait']:x.state==='wait'?['Warten','wait']:x.state==='unconf'?['A unbestätigt','mid']:['Ungültig','mid'];
+    const st=x.gate==='against'?['Gegen die Sequenz','mid']:x.gate==='conf'?['Struktur zu schwach','mid']:x.state==='counter'?['Gegentrade-Lage','target']:x.dir!=='none'?['Signal',cls]:x.state==='in'?['In der Zone','wait']:x.state==='wait'?['Warten','wait']:x.state==='unconf'?['A unbestätigt','mid']:['Ungültig','mid'];
     const txt=x.state==='wait'||x.state==='unconf'?'Noch '+pctS(x.dist,1)+' bis zur Zone.':x.state==='beyond'?'Korrekturlevel deutlich überschritten.':x.state==='in'?(x.dir!=='none'?'Einstieg erlaubt, CRV '+x.crv.toFixed(1)+' : 1.':'CRV unter dem Mindest-CRV.'):'Zielgebiet der Sequenz erreicht.';
     return `<div class="rrow"><div><b>${name}-Einstiegsbereich</b><span class="val">${fmt(lo)} bis ${fmt(hi)}</span></div><span class="tag ${st[1]}">${st[0]}</span><span class="d">Level 0,5 bis 0,667 der Strecke 0-A. ${txt}</span></div>`};
   $('zones').innerHTML=row(1)+row(-1);
@@ -1096,7 +1107,7 @@ COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
 $('tf').value='4h';renderTfs();
 $('coin').addEventListener('change',()=>pick($('coin').value));
 $('tf').addEventListener('change',()=>{renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
-['sw','sm','pp','ps','mc'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
+['sw','sm','pp','ps','mc','st'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
 ['acc','rk','mh','dl','hr','mm','lm','lf','mo','sz'].forEach(id=>$(id).addEventListener('input',renderMain));
 $('sz').addEventListener('change',()=>{if($('sz').value==='mh'){if(!$('mo').value&&window.lastPos)$('mo').value=(Math.ceil(window.lastPos.Mrec*100)/100).toFixed(2);if(window.lastPos&&$('lm').value!=='fix')$('lm').value='fix'}renderMain()});
 function snd(){$('snd').textContent=sound?'Ton an':'Ton aus';$('snd').className=sound?'':'off'}
