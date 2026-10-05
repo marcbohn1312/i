@@ -14,7 +14,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{background:var(--bg);color:var(--fg);font:400 15px/1.5 var(--body);padding-inline:16px;padding-block:18px;min-height:100vh;
   background-image:radial-gradient(1000px 520px at 88% -8%,rgba(77,227,255,.11),transparent 62%),radial-gradient(760px 520px at -8% 28%,rgba(165,149,255,.09),transparent 62%),
@@ -35,6 +35,18 @@ button:hover,.btn:hover{background:rgba(77,227,255,.16)}
 button.off{color:var(--muted);border-color:var(--line)}
 a.btn{text-decoration:none;display:inline-block}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Liquiditäts-Karte */
+body[data-tab="liq"] #tfs{display:none}
+.lqbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:2px 0 10px}
+.lqbar label{display:flex;align-items:center;gap:8px;font:500 12px var(--body);color:var(--muted)}
+.lqbar input[type=range]{width:120px;accent-color:var(--accent)}
+#lcv{width:100%;height:480px;display:block;border-radius:10px;background:#1c0630}
+.lqleg{display:flex;align-items:center;gap:10px;margin-top:8px;font:500 12px var(--body);color:var(--muted)}
+.lqleg i{flex:1;max-width:260px;height:10px;border-radius:5px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
+.lqrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font:500 13px var(--body)}
+.lqrow:last-child{border:0}.lqrow b{font-family:var(--mono)}
+.lqup{color:var(--short)}.lqdn{color:var(--long)}
+@media(max-width:760px){#lcv{height:420px}}
 /* Auswahlleiste */
 .pick{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between}
 .chips{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 8px;scroll-snap-type:x proximity;scrollbar-width:none;min-width:0;flex:1 1 560px}
@@ -274,7 +286,7 @@ body[data-tab="coins"] #chips{display:none}
     <div class="seg" id="mode" role="group" aria-label="Ansicht"><button type="button" data-m="einfach">Einfach</button><button type="button" data-m="pro">Profi</button></div>
   </div>
 </div>
-<nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"><button type="button" role="tab" data-tab="start" aria-controls="pg-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Start</span></button><button type="button" role="tab" data-tab="chart" aria-controls="pg-chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Chart</span></button><button type="button" role="tab" data-tab="order" aria-controls="pg-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Order</span></button><button type="button" role="tab" data-tab="coins" aria-controls="pg-coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Coins</span></button><button type="button" role="tab" data-tab="more" aria-controls="pg-more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button></nav>
+<nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"><button type="button" role="tab" data-tab="start" aria-controls="pg-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Start</span></button><button type="button" role="tab" data-tab="chart" aria-controls="pg-chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Chart</span></button><button type="button" role="tab" data-tab="order" aria-controls="pg-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Order</span></button><button type="button" role="tab" data-tab="coins" aria-controls="pg-coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Coins</span></button><button type="button" role="tab" data-tab="liq" aria-controls="pg-liq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h9M3 10h15M3 14h7M3 18h12"/></svg><span>Liq</span></button><button type="button" role="tab" data-tab="more" aria-controls="pg-more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button></nav>
 <div class="pick" id="pickbar">
   <div class="chips" id="chips" role="group" aria-label="Coin wählen"></div>
   <div class="tools"><div class="seg" id="tfs" role="group" aria-label="Zeitebene"></div></div>
@@ -353,6 +365,19 @@ body[data-tab="coins"] #chips{display:none}
       <div class="pcol"><section class="panel"><h2>Signal-Verlauf</h2><div class="tw"><table><thead><tr><th>Zeit</th><th>Coin</th><th>Signal</th><th>Einstieg</th><th>Stop</th><th>Ziel 1</th><th>Status</th></tr></thead><tbody id="log"></tbody></table></div>
         <p class="note" id="lgs" style="margin-top:8px"></p>
         <p class="note" style="margin-top:8px">Ein Signal entsteht, wenn A bestätigt ist (Korrektur über 0,382), der Preis in der Kauf- oder Verkaufszone steht und das CRV mindestens dem Mindest-CRV entspricht. Das Board sendet keine Orders.</p></section></div>
+    </div>
+  </div>
+  <div class="page" id="pg-liq">
+    <section class="panel" id="liqp"><h2>Liquiditäts-Karte <span class="pill" id="lqsrc" style="margin-left:6px;vertical-align:middle">lädt …</span></h2>
+      <div class="lqbar"><div class="seg" id="lqr" role="group" aria-label="Zeitraum"><button type="button" data-r="24h">24 Std</button><button type="button" data-r="3d">3 Tage</button><button type="button" data-r="7d">7 Tage</button><button type="button" data-r="30d">30 Tage</button></div>
+        <label for="lqth">Schwelle <input id="lqth" type="range" min="0" max="60" value="15"><span id="lqthv" class="mono">0,15</span></label></div>
+      <canvas id="lcv" aria-label="Liquiditäts-Heatmap: Preis senkrecht, Zeit waagerecht, Farbe zeigt, wo viele Positionen liquidiert würden"></canvas>
+      <div class="lqleg"><span>wenig</span><i></i><span>viele Liquidationen</span></div>
+      <p class="note" style="margin-top:8px" id="lqn"></p></section>
+    <div class="pgrid">
+      <div class="pcol"><section class="panel"><h2>Wo es eng wird</h2><div id="lqsum"></div></section></div>
+      <div class="pcol"><section class="panel"><h2>Echte Liquidationen live</h2><div id="lqlive"><p class="note">wird geladen …</p></div></section>
+        <section class="panel"><h2>So liest du die Karte</h2><p class="note">Die Karte zeigt, bei welchen Preisen Positionen mit Hebel zwangsgeschlossen würden. Helle Streifen sind große Ansammlungen. Der Kurs wird von solchen Bereichen oft angezogen, weil dort viele Stops und Zwangsschließungen warten. Eine Garantie ist das nicht. Die Karte ist eine Schätzung nach Modell, wie bei Coinglass, und kein echtes Orderbuch. Sie ändert die SK-Signale nicht. Sie ist nur eine Zusatzinformation.</p></section></div>
     </div>
   </div>
   <div class="page" id="pg-more">
@@ -1123,11 +1148,170 @@ function parseCSV(t){
 $('csv').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{const cs=parseCSV(String(rd.result));if(cs.length<30){$('vm').textContent='CSV braucht mindestens 30 Kerzen';return}
     custom={name:f.name,candles:cs};custom.s=analyse(cs);renderMain();renderScanner()};rd.readAsText(f)});
-let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','more'].includes(TAB))TAB='start';
+
+/* ---------- Liquiditäts-Karte (Modellschätzung, ändert keine SK-Signale) ---------- */
+const LIQR={'24h':{iv:'5m',n:288,tau:.9},'3d':{iv:'15m',n:288,tau:.9},'7d':{iv:'1h',n:168,tau:.9},'30d':{iv:'1h',n:720,tau:.8}};
+const LTIER=[[10,.2],[25,.3],[50,.3],[100,.2]],LMMR=.005;
+let LQ={r:store.get('sk_liqr','3d'),th:store.get('sk_liqth',.15),coin:'',data:null,ts:0,busy:false,ws:null,wsCoin:'',ev:[],sumL:0,sumS:0,wsOk:0};
+if(!LIQR[LQ.r])LQ.r='3d';
+async function liqGet(url){const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});if(!r.ok)throw 0;return r.json()}
+async function liqKlines(coin,r){
+  const {iv,n}=LIQR[r];
+  if(LOCAL||DIRECT){
+    for(const host of ['api.binance.com','data-api.binance.vision']){
+      try{const j=await liqGet(`https://${host}/api/v3/klines?symbol=${coin}USDT&interval=${iv}&limit=${n}`);
+        if(Array.isArray(j)&&j.length>=30)return{candles:j.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]})),src:'Binance'}}catch(e){}}
+  }
+  const f=await fetchCandles(coin,'1h');
+  return{candles:f.candles.map(c=>({t:c.t,o:c.o,h:c.h,l:c.l,c:c.c,v:1})),src:f.src+' (ohne Volumen)',noVol:true};
+}
+async function liqExtra(coin){
+  const out={oi:null,ls:null};
+  if(!(LOCAL||DIRECT))return out;
+  try{const j=await liqGet(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${coin}USDT`);if(+j.openInterest>0)out.oi=+j.openInterest}catch(e){}
+  try{const j=await liqGet(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${coin}USDT&period=1h&limit=1`);
+    const x=Array.isArray(j)&&j[0];if(x&&+x.longAccount>0&&+x.longAccount<1)out.ls=+x.longAccount}catch(e){}
+  return out;
+}
+function liqCompute(cs,ex){
+  const T=cs.length,last=cs[T-1].c,B=150;
+  let lo=Infinity,hi=-Infinity;cs.forEach(c=>{if(c.l<lo)lo=c.l;if(c.h>hi)hi=c.h});
+  let ymin=Math.max(Math.min(lo,last)*.97,last*.75),ymax=Math.min(Math.max(hi,last)*1.03,last*1.25);
+  const span=ymax-ymin,tau=Math.max(10,T*LIQR[LQ.r].tau),ls=ex&&ex.ls?ex.ls:.5;
+  const diff=new Float64Array(B*(T+1)),pl=new Float64Array(B),ps=new Float64Array(B);
+  const bin=P=>Math.floor((P-ymin)/span*B);
+  for(let i=0;i<T;i++){
+    const c=cs[i],tp=(c.h+c.l+c.c)/3,w0=(c.v||1)*tp*Math.exp(-(T-1-i)/tau);
+    for(const [L,sh] of LTIER){
+      const w=w0*sh;
+      const PL=tp*(1-1/L+LMMR),PS=tp*(1+1/L-LMMR);
+      const bl=bin(PL),bs=bin(PS);
+      if(bl>=0&&bl<B){let e=T;for(let j=i+1;j<T;j++){if(cs[j].l<=PL){e=j;break}}
+        const x=w*ls*2;diff[bl*(T+1)+i]+=x;diff[bl*(T+1)+e]-=x;if(e===T)pl[bl]+=x}
+      if(bs>=0&&bs<B){let e=T;for(let j=i+1;j<T;j++){if(cs[j].h>=PS){e=j;break}}
+        const x=w*(1-ls)*2;diff[bs*(T+1)+i]+=x;diff[bs*(T+1)+e]-=x;if(e===T)ps[bs]+=x}
+    }
+  }
+  let surv=0;for(let b=0;b<B;b++)surv+=pl[b]+ps[b];
+  const scale=ex&&ex.oi&&surv>0?ex.oi*last/surv:0;
+  const grid=new Float32Array(B*T);let vmax=0;
+  for(let b=0;b<B;b++){let run=0;for(let t=0;t<T;t++){run+=diff[b*(T+1)+t];const v=run>0?run:0;grid[b*T+t]=v;if(v>vmax)vmax=v}}
+  return{cs,T,B,ymin,ymax,last,grid,vmax,pl,ps,scale,hasOI:!!scale,ls};
+}
+function liqPeaks(d,side){
+  const arr=side==='up'?d.ps:d.pl,B=d.B,out=[];
+  const cur=Math.floor((d.last-d.ymin)/(d.ymax-d.ymin)*B);
+  for(let b=0;b<B;b++){if(side==='up'?b<=cur:b>=cur)continue;
+    let v=0;for(let k=-1;k<=1;k++)if(arr[b+k])v+=arr[b+k];
+    if(v>0)out.push({b,v})}
+  out.sort((a,b)=>b.v-a.v);
+  const pick=[];for(const o of out){if(pick.every(p=>Math.abs(p.b-o.b)>=5))pick.push(o);if(pick.length>=3)break}
+  return pick.map(o=>({price:d.ymin+(o.b+.5)/d.B*(d.ymax-d.ymin),v:o.v}));
+}
+function liqUsd(d,v){if(d.hasOI){const u=v*d.scale;return u>=1e9?(u/1e9).toFixed(2).replace('.',',')+' Mrd. $':u>=1e6?(u/1e6).toFixed(1).replace('.',',')+' Mio. $':fmtU(Math.round(u))+' $'}return null}
+function liqColor(x){
+  const st=[[0,[68,1,84]],[.25,[59,82,139]],[.5,[33,145,140]],[.75,[94,201,98]],[1,[253,231,37]]];
+  for(let i=1;i<st.length;i++)if(x<=st[i][0]){const a=st[i-1],b=st[i],f=(x-a[0])/(b[0]-a[0]);return[0,1,2].map(k=>Math.round(a[1][k]+(b[1][k]-a[1][k])*f))}
+  return st[4][1];
+}
+function drawLiq(){
+  const cv=$('lcv'),d=LQ.data;if(!cv)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  g.fillStyle='#1c0630';g.fillRect(0,0,W,H);
+  if(!d){g.fillStyle='#8197bd';g.font='500 14px '+css('--body');g.fillText('Daten werden geladen …',16,30);return}
+  const NARROW=W<600,pad={l:6,r:NARROW?64:76,t:10,b:22},profW=NARROW?Math.round(W*.2):Math.round(W*.16);
+  const pw=W-pad.l-pad.r-profW,ph=H-pad.t-pad.b,x0=pad.l,y0=pad.t;
+  const Y=p=>y0+ph-(p-d.ymin)/(d.ymax-d.ymin)*ph;
+  /* Heatmap als Pixelbild (Zeit x Preisklasse) */
+  const oc=document.createElement('canvas');oc.width=d.T;oc.height=d.B;const og=oc.getContext('2d'),im=og.createImageData(d.T,d.B);
+  const th=LQ.th,vm=d.vmax||1;
+  for(let b=0;b<d.B;b++){const row=d.B-1-b;
+    for(let t=0;t<d.T;t++){
+      let x=Math.sqrt(d.grid[b*d.T+t]/vm);x=x<th?0:th>=1?1:(x-th)/(1-th);
+      const c=liqColor(Math.min(1,x*1.15)),o=(row*d.T+t)*4;im.data[o]=c[0];im.data[o+1]=c[1];im.data[o+2]=c[2];im.data[o+3]=255}}
+  og.putImageData(im,0,0);
+  g.imageSmoothingEnabled=true;g.drawImage(oc,x0,y0,pw,ph);
+  /* Kurslinie */
+  g.lineWidth=1.4;g.strokeStyle='rgba(255,255,255,.92)';g.beginPath();
+  d.cs.forEach((c,i)=>{const x=x0+(i+.5)/d.T*pw,y=Y(c.c);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+  /* Profil rechts: Long unten (grün), Short oben (rot) */
+  const px=x0+pw+8,pm=Math.max(1e-9,...d.pl,...d.ps);
+  for(let b=0;b<d.B;b++){const y=Y(d.ymin+(b+1)/d.B*(d.ymax-d.ymin)),h=ph/d.B+.6;
+    if(d.pl[b]>0){g.fillStyle='rgba(34,240,168,.85)';g.fillRect(px,y,profW*d.pl[b]/pm,h)}
+    if(d.ps[b]>0){g.fillStyle='rgba(255,75,134,.85)';g.fillRect(px,y,profW*d.ps[b]/pm,h)}}
+  /* aktueller Preis */
+  const yl=Y(d.last);g.setLineDash([5,4]);g.strokeStyle='rgba(77,227,255,.9)';g.lineWidth=1;g.beginPath();g.moveTo(x0,yl);g.lineTo(x0+pw+profW+8,yl);g.stroke();g.setLineDash([]);
+  /* Preisachse */
+  g.font='500 11px '+css('--mono');g.textBaseline='middle';g.textAlign='left';
+  const ax=W-pad.r+4,steps=6;g.fillStyle='#c9d6f5';
+  for(let i=0;i<=steps;i++){const p=d.ymin+(d.ymax-d.ymin)*i/steps;g.fillText(fmt(p),ax,Math.min(H-pad.b-4,Math.max(y0+6,Y(p))))}
+  g.fillStyle='#04202a';g.strokeStyle='#4de3ff';const lab=fmt(d.last),tw=g.measureText(lab).width+10;
+  g.fillRect(ax-2,yl-9,tw,18);g.strokeRect(ax-2,yl-9,tw,18);g.fillStyle='#4de3ff';g.fillText(lab,ax+3,yl);
+  /* Zeitachse */
+  g.fillStyle='#c9d6f5';g.textBaseline='alphabetic';
+  const tl=i=>{const t=d.cs[Math.min(d.T-1,Math.max(0,i))].t;if(!t)return'';const dt=new Date(t);return LQ.r==='24h'?dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):dt.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})};
+  g.textAlign='left';g.fillText(tl(0),x0+2,H-6);g.textAlign='center';g.fillText(tl(Math.floor(d.T/2)),x0+pw/2,H-6);g.textAlign='right';g.fillText('jetzt',x0+pw-2,H-6);
+}
+function renderLiq(){
+  const d=LQ.data;
+  $('lqth').value=Math.round(LQ.th*100);$('lqthv').textContent=LQ.th.toFixed(2).replace('.',',');
+  document.querySelectorAll('#lqr [data-r]').forEach(b=>b.classList.toggle('on',b.dataset.r===LQ.r));
+  drawLiq();
+  if(!d){$('lqsum').innerHTML='';return}
+  const up=liqPeaks(d,'up'),dn=liqPeaks(d,'down');
+  const row=(p,cls,txt)=>{const dist=(p.price/d.last-1)*100,u=liqUsd(d,p.v);
+    return `<div class="lqrow"><span class="${cls}">${txt}</span><span><b>${fmt(p.price)}</b> (${(dist>=0?'+':'')+dist.toFixed(1).replace('.',',')} %)${u?' · '+u:''}</span></div>`};
+  let h='';
+  h+=up.length?up.map((p,i)=>row(p,'lqup',i?'Short-Liquidationen darüber':'Größter Bereich oben')).join(''):'<div class="lqrow"><span>Oben</span><span>keine große Ansammlung</span></div>';
+  h+=dn.length?dn.map((p,i)=>row(p,'lqdn',i?'Long-Liquidationen darunter':'Größter Bereich unten')).join(''):'<div class="lqrow"><span>Unten</span><span>keine große Ansammlung</span></div>';
+  const top=[up[0]&&{...up[0],dir:'oben'},dn[0]&&{...dn[0],dir:'unten'}].filter(Boolean);
+  if(top.length){const m=top.sort((a,b)=>Math.abs(a.price-d.last)-Math.abs(b.price-d.last)||b.v-a.v)[0],big=top.sort((a,b)=>b.v-a.v)[0];
+    h+=`<p class="note" style="margin-top:10px">In einfachen Worten: Der größere Bereich liegt <b>${big.dir}</b> bei ${fmt(big.price)}. Dorthin wird der Kurs oft gezogen. Das ist ein Hinweis und keine Vorhersage.</p>`}
+  $('lqsum').innerHTML=h;
+  $('lqsrc').textContent=(LQ.src||'')+(d.hasOI?' · mit Open Interest':' · Modell');
+  $('lqsrc').className='pill '+(LQ.live?'live':'warn');
+  $('lqn').textContent=`${d.T} Kerzen · Long-Anteil ${Math.round(d.ls*100)} % ${LQ.lsLive?'(echt von Binance)':'(angenommen 50 %)'} · Hebelstufen 10x, 25x, 50x, 100x. Positionen verschwinden, sobald der Kurs ihren Liquidationspreis berührt.`;
+}
+async function loadLiq(force){
+  if(LQ.busy)return;if(!force&&LQ.data&&LQ.coin===sel&&Date.now()-LQ.ts<55000)return;
+  LQ.busy=true;const coin=sel,r=LQ.r;
+  try{const [k,ex]=await Promise.all([liqKlines(coin,r),liqExtra(coin)]);
+    if(coin!==sel||r!==LQ.r){LQ.busy=false;return loadLiq(true)}
+    LQ.coin=coin;LQ.src=k.src;LQ.live=!k.noVol&&k.src!=='';LQ.lsLive=!!ex.ls;LQ.ts=Date.now();LQ.data=liqCompute(k.candles,ex)}
+  catch(e){LQ.data=null;LQ.src='kein Zugriff';LQ.live=false;$('lqsum').innerHTML='<p class="note">Die Liquiditäts-Daten konnten nicht geladen werden. Prüfe die Internetverbindung.</p>'}
+  LQ.busy=false;if(TAB==='liq')renderLiq();
+}
+/* echte Liquidationen (Binance Futures, falls erreichbar) */
+function liqWs(){
+  if(!(LOCAL||DIRECT)||!window.WebSocket){renderLive();return}
+  if(LQ.ws&&LQ.wsCoin===sel)return;
+  try{LQ.ws&&LQ.ws.close()}catch(e){}
+  LQ.ev=[];LQ.sumL=0;LQ.sumS=0;LQ.wsOk=0;LQ.wsCoin=sel;
+  try{const ws=new WebSocket(`wss://fstream.binance.com/ws/${sel.toLowerCase()}usdt@forceOrder`);LQ.ws=ws;
+    ws.onopen=()=>{LQ.wsOk=1;renderLive()};
+    ws.onmessage=m=>{try{const o=JSON.parse(m.data).o;if(!o)return;const usd=+o.q*+(o.ap||o.p),long=o.S==='SELL';
+      if(long)LQ.sumL+=usd;else LQ.sumS+=usd;LQ.ev.unshift({t:Date.now(),long,usd,p:+(o.ap||o.p)});LQ.ev.length=Math.min(LQ.ev.length,8);renderLive()}catch(e){}};
+    ws.onerror=()=>{LQ.wsOk=-1;renderLive()};ws.onclose=()=>{if(LQ.ws===ws){LQ.ws=null;LQ.wsCoin='';if(LQ.wsOk!==-1)LQ.wsOk=0;renderLive()}};
+  }catch(e){LQ.wsOk=-1;renderLive()}
+}
+function renderLive(){
+  const el=$('lqlive');if(!el)return;
+  if(!(LOCAL||DIRECT)){el.innerHTML='<p class="note">Echte Liquidationen gibt es nur in der Windows-Version und in der Handy-App.</p>';return}
+  if(LQ.wsOk===-1){el.innerHTML='<p class="note">Die Liquidations-Meldungen der Börse sind hier nicht erreichbar. Die Karte oben funktioniert trotzdem.</p>';return}
+  const u=v=>v>=1e6?(v/1e6).toFixed(2).replace('.',',')+' Mio. $':fmtU(Math.round(v))+' $';
+  let h=`<div class="lqrow"><span class="lqdn">Long liquidiert seit Öffnen</span><b>${u(LQ.sumL)}</b></div><div class="lqrow"><span class="lqup">Short liquidiert seit Öffnen</span><b>${u(LQ.sumS)}</b></div>`;
+  h+=LQ.ev.length?LQ.ev.map(e=>`<div class="lqrow"><span class="${e.long?'lqdn':'lqup'}">${e.long?'Long':'Short'} ${new Date(e.t).toLocaleTimeString('de-DE')}</span><span><b>${fmt(e.p)}</b> · ${u(e.usd)}</span></div>`).join(''):`<p class="note">${LQ.wsOk?'Verbunden. Es wartet auf die nächste Zwangsschließung …':'Verbindung wird aufgebaut …'}</p>`;
+  el.innerHTML=h;
+}
+document.querySelectorAll('#lqr [data-r]').forEach(b=>b.onclick=()=>{LQ.r=b.dataset.r;store.set('sk_liqr',LQ.r);LQ.data=null;renderLiq();loadLiq(true)});
+$('lqth').addEventListener('input',()=>{LQ.th=+$('lqth').value/100;store.set('sk_liqth',LQ.th);renderLiq()});
+setInterval(()=>{if(TAB==='liq'){if(LQ.coin!==sel&&!LQ.busy){LQ.data=null;renderLiq()}loadLiq();liqWs()}},3000);
+let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','liq','more'].includes(TAB))TAB='start';
 function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));
   document.querySelectorAll('#tabs [data-tab]').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}})}
+  window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}});if(t==='liq'){renderLiq();loadLiq();liqWs()}}
 document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
 (LOCAL||DIRECT?[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
@@ -1160,7 +1344,7 @@ $('altest').onclick=()=>{if(AL.mode==='aus'){$('al').value='alarm';AL.mode='alar
   try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
   alertSignal({dir:'long',coin:sel,tf:tf(),kind:'Test',entry:100,sl:96,tp1:112,crv:3,old:false})};
 if(+AL.wl)setWake();
-window.addEventListener('resize',()=>{draw(cur());draw1m()});
+window.addEventListener('resize',()=>{draw(cur());draw1m();if(TAB==='liq')drawLiq()});
 setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('de-DE')},1000);$('clock').textContent=new Date().toLocaleTimeString('de-DE');
 setInterval(()=>{if(!custom)refreshCoin(sel,false).then(()=>{renderMain();renderScanner()})},30000);
 setInterval(scan,60000);setInterval(refreshMtf,60000);
