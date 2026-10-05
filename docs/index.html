@@ -146,7 +146,7 @@ canvas{width:100%;height:580px;display:block}
 @media(prefers-reduced-motion:reduce){.toast,.al-box,.dot{animation:none}.pat figure{transition:none}}
 
 /* Einfach-Ansicht: Ampel-Karte, Coin-Karten, Hilfe */
-body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#riskp,#tmp,#lvlp,#twop,#mpick,#mauto,#mhint){display:none!important}
+body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#riskp,#tmp,#lvlp,#mpick,#mauto,#mhint){display:none!important}
 .chip{min-width:112px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border-radius:14px;text-align:left}
 .chip .sy{font:700 15px var(--display);letter-spacing:.06em}
 .chip .pr{font:500 12px var(--mono);color:var(--muted)}
@@ -238,16 +238,25 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
 #cv1{height:190px}
 @media(max-width:600px){#cv1{height:150px}.l1-p b{font-size:22px}}
 /* Handy: Tab-Leiste unten */
-#tabs{display:none}
+.tabs{display:flex;gap:6px;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px)}
+.tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:600 13px var(--display);letter-spacing:.1em;text-transform:uppercase}
+.tabs button svg{width:19px;height:19px}
+.tabs button:hover{background:rgba(77,227,255,.08);color:var(--fg)}
+.tabs button.on{background:rgba(77,227,255,.16);color:var(--accent);box-shadow:inset 0 0 0 1px rgba(77,227,255,.35)}
+.page{display:none;flex-direction:column;gap:16px}
+.page.on{display:flex}
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.pcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(max-width:980px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+body[data-tab="more"] #pickbar{display:none}
+body[data-tab="coins"] #chips{display:none}
 @media(max-width:700px){
   body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
   .brand h1{font-size:16px;letter-spacing:.1em}.brand small{font-size:10.5px}
   .panel{padding:14px}.verdict{padding:16px}.v-main{font-size:32px}.price{font-size:24px}
   .status{gap:6px}#clock{display:none}button,.btn{padding:7px 12px;font-size:12px}
-  #tabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(6,12,24,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line-s);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
-  #tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;color:var(--muted);text-decoration:none;font:600 10.5px var(--display);letter-spacing:.1em;text-transform:uppercase;border-radius:10px}
-  #tabs a:active,#tabs a.on{color:var(--accent);background:rgba(77,227,255,.1)}
-  #tabs svg{width:22px;height:22px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;border-radius:0;border-width:1px 0 0;border-color:var(--line-s);background:rgba(6,12,24,.95);backdrop-filter:blur(12px);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));gap:2px}
+  .tabs button{flex-direction:column;gap:3px;padding:7px 2px;font-size:10.5px;letter-spacing:.08em}.tabs button svg{width:22px;height:22px}
   [id]{scroll-margin-top:12px}
 }
 </style>
@@ -265,19 +274,89 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
     <div class="seg" id="mode" role="group" aria-label="Ansicht"><button type="button" data-m="einfach">Einfach</button><button type="button" data-m="pro">Profi</button></div>
   </div>
 </div>
-
-<section class="panel live1" id="live1" aria-label="Live-Chart 1 Minute">
+<nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"><button type="button" role="tab" data-tab="start" aria-controls="pg-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Start</span></button><button type="button" role="tab" data-tab="chart" aria-controls="pg-chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Chart</span></button><button type="button" role="tab" data-tab="order" aria-controls="pg-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Order</span></button><button type="button" role="tab" data-tab="coins" aria-controls="pg-coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Coins</span></button><button type="button" role="tab" data-tab="more" aria-controls="pg-more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button></nav>
+<div class="pick" id="pickbar">
+  <div class="chips" id="chips" role="group" aria-label="Coin wählen"></div>
+  <div class="tools"><div class="seg" id="tfs" role="group" aria-label="Zeitebene"></div></div>
+  <select id="coin" hidden></select><select id="tf" hidden></select>
+</div>
+<main>
+  <div class="page" id="pg-start">
+    <section class="panel live1" id="live1" aria-label="Live-Chart 1 Minute">
   <div class="l1-head"><div class="l1-t"><span class="dot"></span><span class="l1-sym" id="l1sym">BTC / USDT · 1 Min</span></div><div class="l1-p"><b id="l1price">…</b><span id="l1chg"></span></div><span class="pill" id="l1st">LÄDT</span></div>
   <canvas id="cv1" aria-label="Live-Kerzenchart, 1 Minute"></canvas>
 </section>
-
-<div class="pick">
-  <div class="chips" id="chips" role="group" aria-label="Coin wählen"></div>
-  <div class="tools"><div class="seg" id="tfs" role="group" aria-label="Zeitebene"></div><button id="cfgb" type="button" aria-controls="cfgp" style="display:inline-flex;align-items:center;gap:8px"><svg style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Einstellungen</button></div>
-  <select id="coin" hidden></select><select id="tf" hidden></select>
-</div>
-
-<div id="cfgp" class="cfg-grid" hidden>
+    <div class="pgrid">
+      <div class="pcol"><section class="hero wait" id="hero" data-o="0" aria-live="polite">
+      <div class="h-top"><div class="h-ico" id="hico"></div><div><div class="h-coin" id="hcoin"></div><div class="h-word" id="hword">...</div></div></div>
+      <p class="h-text" id="htext"></p>
+      <div class="meter" id="hmeter" hidden><div class="m-label"><span id="hml">Abstand zur Zone</span><b id="hmv"></b></div><div class="m-bar"><i id="hmf" style="width:0"></i></div></div>
+      <div class="h-plan" id="hplan"></div>
+      <details class="how" id="hhow"><summary>So gehst du vor</summary><ol id="hsteps"></ol></details>
+    </section>
+        <section data-o="1" class="panel verdict wait" id="verdict" aria-live="polite">
+      <div class="v-label" id="vl">SEQUENZ</div>
+      <div class="v-main" id="vm">–</div>
+      <p class="v-sub" id="vs"></p>
+      <div class="plan" id="plan"></div>
+      <dl id="vd"></dl>
+    </section></div>
+      <div class="pcol"><section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section></div>
+    </div>
+  </div>
+  <div class="page" id="pg-chart">
+    <section class="panel" data-o="2" id="chartp">
+      <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="upd"></span></div></div>
+      <canvas id="cv" aria-label="Kerzenchart mit SK-Sequenz 0-A-B-C, Kaufzone, Verkaufszone und Zielzone"></canvas>
+      <div class="legend lg-pro"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Long-Einstiegsbereich (Kaufzone)</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Short-Einstiegsbereich (Verkaufszone)</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Zielzone 161,8 - 200 %</span><span>0, A, B = erkannte Punkte, C = erwartete Bewegung</span></div>
+      <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Ziel = Gewinnziel</span><span>Stop = Verlustgrenze</span></div>
+    </section>
+    <div class="pgrid">
+      <div class="pcol"><section data-o="3" class="panel" id="zonesp"><h2>Einstiegsbereiche</h2><div id="zones" class="rlist"></div></section>
+        <section data-o="5" class="panel" id="mtfp"><h2>Zeitebenen-Check</h2><div id="mtf" class="rlist"></div><p class="note" style="margin-top:8px">Tradebook: von der übergeordneten Ebene zur kleineren Ebene analysieren und dort bestätigen. Der Check ist eine Anzeige und sperrt kein Signal.</p></section></div>
+      <div class="pcol"><section data-o="8" class="panel" id="patp"><h2>SK-Muster</h2><div class="pat" id="pat"></div>
+      <p class="note" style="margin-top:8px">Vorgegebenes SK-Muster: Strecke 0-A, Korrektur nach B in die Zone 0,5 bis 0,667 (A gilt ab dem 0,382er Level als bestätigt), danach Bewegung C in die Zielzone 161,8 bis 200 % der trendbasierten Extension ab B.</p></section>
+        <section data-o="10" class="panel" id="lvlp"><h2>Fibonacci-Level der Sequenz</h2><div class="tw"><table><thead><tr><th>Level</th><th>Preis</th><th>Bedeutung</th></tr></thead><tbody id="zt"></tbody></table></div>
+      <p class="note" style="margin-top:10px"><b>Aus dem Tradebook:</b> Sequenz 0-A-B-C, A bestätigt ab 0,382, Einstiegszone 0,5 / 0,559 / 0,618 / 0,667, Zielzone 161,8 bis 200 % (trendbasierte Extension 0-A-B), Stop knapp hinter 0,786 (1-Trade) oder fest in Pips (Multi-Trade, Krypto 100 Pips), Risiko höchstens 1 bis 3 %, CRV mindestens 1:1. <b>Eigene Festlegungen:</b> automatische Erkennung von 0 und A über Swing-Punkte, Mindeststrecke 3 ATR, Pip-Größe, Hebel-Regeln, Tages- und Gesamtlimit. Nicht umgesetzt: Gegentrade am Zielgebiet und Wiedereinstieg nach B-C-Korrektur. Kein Anlageratschlag.</p></section></div>
+    </div>
+  </div>
+  <div class="page" id="pg-order">
+    <div class="pgrid">
+      <div class="pcol"><section data-o="1" class="panel" id="posp"><h2>Deine Order für die Börsen-App</h2><div class="ordctl">
+      <label for="sz" style="grid-column:1/-1">Position berechnen nach<select id="sz"><option value="risk" selected>Risiko (empfohlen): Position aus deinem Risiko</option><option value="mh">Margin und Hebel: Position aus deiner Margin</option></select></label>
+      <label for="mm">Margin-Modus<select id="mm"><option value="iso" selected>Isoliert</option><option value="cross">Cross</option></select></label>
+      <label for="lm">Hebel<select id="lm"><option value="auto" selected>Automatisch</option><option value="fix">Fest</option></select></label>
+      <label for="lf">Fester Hebel (x)<input id="lf" type="number" min="1" max="125" step="1" value="50"></label>
+      <label for="mo">Margin (USDT) anpassen<input id="mo" type="number" min="0" step="any" placeholder="automatisch"></label>
+    </div>
+    <div id="pd"></div><details class="how" id="pdet"><summary>Details und Hinweise</summary><div id="pdd"></div><p class="note" id="pn" style="margin-top:10px"></p></details></section></div>
+      <div class="pcol"><section data-o="7" class="panel" id="riskp"><h2>Risikomanagement</h2><div id="rc"></div>
+      <h2 style="margin-top:16px">Serie von Verlusttrades</h2>
+      <div class="tw"><table><thead><tr><th>Verluste</th><th>Restkonto</th><th>Drawdown</th><th>Nötiger Gewinn</th></tr></thead><tbody id="dd"></tbody></table></div>
+      <p class="note" id="rn" style="margin-top:10px"></p></section>
+        <section data-o="9" class="panel" id="tmp"><h2>Trade-Management laut Tradebook</h2><ul class="tm">
+      <li>Nie ohne Stop-Loss handeln. Der Stop wird nicht nachgezogen, außer auf Break-even.</li>
+      <li>Beim Break-even-Stop den Spread beachten und den Stop nicht genau auf den Einstieg legen.</li>
+      <li>Das Zielgebiet gilt als abgearbeitet, wenn der Kurs 5 Pips vor dem 161,8er ankommt.</li>
+      <li>Gewinne sollen am gleichen Tag realisiert werden.</li>
+      <li>Wird ein Trade nach dem Break-even ausgestoppt, gleich wieder einsteigen, solange die Sequenz gilt.</li>
+      <li>Die Korrektur der B-C-Bewegung ist immer ein Wiedereinstieg, wenn die Sequenz aktiviert ist.</li>
+      <li>Mit der Sequenz handeln ist weniger riskant als gegen sie. Alle Märkte handeln, die einen gültigen Einstieg geben.</li>
+      <li>Analyse von oben nach unten: Monat, Woche bis Stunde, dann 30-Minuten-Chart zur Bestätigung.</li>
+    </ul></section></div>
+    </div>
+  </div>
+  <div class="page" id="pg-coins">
+    <div class="pgrid">
+      <div class="pcol"><section class="panel" id="scanp"><h2>Alle Coins</h2><div class="tw"><table><thead><tr><th>Coin</th><th>Preis</th><th>Muster</th><th>Status</th><th>Abstand</th></tr></thead><tbody id="scan"></tbody></table></div>
+        <p class="note" style="margin-top:8px" id="scn"></p></section></div>
+      <div class="pcol"><section class="panel"><h2>Signal-Verlauf</h2><div class="tw"><table><thead><tr><th>Zeit</th><th>Coin</th><th>Signal</th><th>Einstieg</th><th>Stop</th><th>Ziel 1</th><th>Status</th></tr></thead><tbody id="log"></tbody></table></div>
+        <p class="note" id="lgs" style="margin-top:8px"></p>
+        <p class="note" style="margin-top:8px">Ein Signal entsteht, wenn A bestätigt ist (Korrektur über 0,382), der Preis in der Kauf- oder Verkaufszone steht und das CRV mindestens dem Mindest-CRV entspricht. Das Board sendet keine Orders.</p></section></div>
+    </div>
+  </div>
+  <div class="page" id="pg-more">
+    <div id="cfgp" class="cfg-grid">
   <div class="cfg-group"><h3>Sequenz und Strategie</h3>
     <label for="sw"><span>Swing-Länge <span class="v" id="swv">5</span></span><input id="sw" type="range" min="2" max="15" step="1" value="5"></label>
     <label for="sm">Strategie<select id="sm"><option value="k786" selected>1-Trade: Stop knapp hinter 0,786</option><option value="pips">Multi-Trade: fester Stop in Pips</option></select></label>
@@ -306,66 +385,8 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
     <a class="btn" id="man" href="/handbuch.pdf" target="_blank" hidden>Handbuch öffnen</a>
   </div>
 </div>
-
-<div class="grid">
-  <div class="col">
-    <section class="hero wait" id="hero" data-o="0" aria-live="polite">
-      <div class="h-top"><div class="h-ico" id="hico"></div><div><div class="h-coin" id="hcoin"></div><div class="h-word" id="hword">...</div></div></div>
-      <p class="h-text" id="htext"></p>
-      <div class="meter" id="hmeter" hidden><div class="m-label"><span id="hml">Abstand zur Zone</span><b id="hmv"></b></div><div class="m-bar"><i id="hmf" style="width:0"></i></div></div>
-      <div class="h-plan" id="hplan"></div>
-      <details class="how" id="hhow"><summary>So gehst du vor</summary><ol id="hsteps"></ol></details>
-    </section>
-    <section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section>
-    <section data-o="1" class="panel verdict wait" id="verdict" aria-live="polite">
-      <div class="v-label" id="vl">SEQUENZ</div>
-      <div class="v-main" id="vm">–</div>
-      <p class="v-sub" id="vs"></p>
-      <div class="plan" id="plan"></div>
-      <dl id="vd"></dl>
-    </section>
-    <section data-o="3" class="panel" id="zonesp"><h2>Einstiegsbereiche</h2><div id="zones" class="rlist"></div></section>
-    <section data-o="5" class="panel" id="mtfp"><h2>Zeitebenen-Check</h2><div id="mtf" class="rlist"></div><p class="note" style="margin-top:8px">Tradebook: von der übergeordneten Ebene zur kleineren Ebene analysieren und dort bestätigen. Der Check ist eine Anzeige und sperrt kein Signal.</p></section>
-    <section data-o="8" class="panel" id="patp"><h2>SK-Muster</h2><div class="pat" id="pat"></div>
-      <p class="note" style="margin-top:8px">Vorgegebenes SK-Muster: Strecke 0-A, Korrektur nach B in die Zone 0,5 bis 0,667 (A gilt ab dem 0,382er Level als bestätigt), danach Bewegung C in die Zielzone 161,8 bis 200 % der trendbasierten Extension ab B.</p></section>
-    <section data-o="1" class="panel" id="posp"><h2>Deine Order für die Börsen-App</h2><div class="ordctl">
-      <label for="sz" style="grid-column:1/-1">Position berechnen nach<select id="sz"><option value="risk" selected>Risiko (empfohlen): Position aus deinem Risiko</option><option value="mh">Margin und Hebel: Position aus deiner Margin</option></select></label>
-      <label for="mm">Margin-Modus<select id="mm"><option value="iso" selected>Isoliert</option><option value="cross">Cross</option></select></label>
-      <label for="lm">Hebel<select id="lm"><option value="auto" selected>Automatisch</option><option value="fix">Fest</option></select></label>
-      <label for="lf">Fester Hebel (x)<input id="lf" type="number" min="1" max="125" step="1" value="50"></label>
-      <label for="mo">Margin (USDT) anpassen<input id="mo" type="number" min="0" step="any" placeholder="automatisch"></label>
-    </div>
-    <div id="pd"></div><details class="how" id="pdet"><summary>Details und Hinweise</summary><div id="pdd"></div><p class="note" id="pn" style="margin-top:10px"></p></details></section>
-    <section data-o="7" class="panel" id="riskp"><h2>Risikomanagement</h2><div id="rc"></div>
-      <h2 style="margin-top:16px">Serie von Verlusttrades</h2>
-      <div class="tw"><table><thead><tr><th>Verluste</th><th>Restkonto</th><th>Drawdown</th><th>Nötiger Gewinn</th></tr></thead><tbody id="dd"></tbody></table></div>
-      <p class="note" id="rn" style="margin-top:10px"></p></section>
-    <section data-o="9" class="panel" id="tmp"><h2>Trade-Management laut Tradebook</h2><ul class="tm">
-      <li>Nie ohne Stop-Loss handeln. Der Stop wird nicht nachgezogen, außer auf Break-even.</li>
-      <li>Beim Break-even-Stop den Spread beachten und den Stop nicht genau auf den Einstieg legen.</li>
-      <li>Das Zielgebiet gilt als abgearbeitet, wenn der Kurs 5 Pips vor dem 161,8er ankommt.</li>
-      <li>Gewinne sollen am gleichen Tag realisiert werden.</li>
-      <li>Wird ein Trade nach dem Break-even ausgestoppt, gleich wieder einsteigen, solange die Sequenz gilt.</li>
-      <li>Die Korrektur der B-C-Bewegung ist immer ein Wiedereinstieg, wenn die Sequenz aktiviert ist.</li>
-      <li>Mit der Sequenz handeln ist weniger riskant als gegen sie. Alle Märkte handeln, die einen gültigen Einstieg geben.</li>
-      <li>Analyse von oben nach unten: Monat, Woche bis Stunde, dann 30-Minuten-Chart zur Bestätigung.</li>
-    </ul></section>
-  </div>
-  <div class="col">
-    <section class="panel" data-o="2" id="chartp">
-      <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="upd"></span></div></div>
-      <canvas id="cv" aria-label="Kerzenchart mit SK-Sequenz 0-A-B-C, Kaufzone, Verkaufszone und Zielzone"></canvas>
-      <div class="legend lg-pro"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Long-Einstiegsbereich (Kaufzone)</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Short-Einstiegsbereich (Verkaufszone)</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Zielzone 161,8 - 200 %</span><span>0, A, B = erkannte Punkte, C = erwartete Bewegung</span></div>
-      <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Ziel = Gewinnziel</span><span>Stop = Verlustgrenze</span></div>
-    </section>
-    <div class="two" data-o="4" id="twop">
-      <section class="panel" id="scanp"><h2>Scanner, alle Coins</h2><div class="tw"><table><thead><tr><th>Coin</th><th>Preis</th><th>Muster</th><th>Status</th><th>Abstand</th></tr></thead><tbody id="scan"></tbody></table></div>
-        <p class="note" style="margin-top:8px" id="scn"></p></section>
-      <section class="panel"><h2>Signale</h2><div class="tw"><table><thead><tr><th>Zeit</th><th>Coin</th><th>Signal</th><th>Einstieg</th><th>Stop</th><th>Ziel 1</th><th>Status</th></tr></thead><tbody id="log"></tbody></table></div>
-        <p class="note" id="lgs" style="margin-top:8px"></p>
-        <p class="note" style="margin-top:8px">Ein Signal entsteht, wenn A bestätigt ist (Korrektur über 0,382), der Preis in der Kauf- oder Verkaufszone steht und das CRV mindestens dem Mindest-CRV entspricht. Das Board sendet keine Orders.</p></section>
-    </div>
-    <section class="panel faq" id="faq" data-o="11"><h2>Was bedeutet das?</h2>
+    <div class="pgrid" style="margin-top:16px">
+      <div class="pcol"><section class="panel faq" id="faq" data-o="11"><h2>Was bedeutet das?</h2>
       <details><summary>Was heißt „Kaufen (Long)“ und „Verkaufen (Short)“?</summary><p>Kaufen (Long) heißt: Du setzt darauf, dass der Kurs steigt. Verkaufen (Short) heißt: Du setzt darauf, dass der Kurs fällt. Das System sagt dir, welche Richtung gerade ein günstiger Zeitpunkt hat.</p></details>
       <details><summary>Was ist die Kaufzone und die Verkaufszone?</summary><p>Das ist ein Preisbereich, in dem das System einen Einstieg erlaubt. Der Kurs ist dort erst gestiegen oder gefallen und hat sich ein Stück zurückgezogen. Das ist der günstigere Moment für den Einstieg. Im Chart sind beide Bereiche eingezeichnet: grün zum Kaufen, rot zum Verkaufen.</p></details>
       <details><summary>Was ist die Verlustgrenze (Stop)?</summary><p>Das ist ein Preis, bei dem dein Handel automatisch endet, wenn es schiefgeht. So verlierst du nie mehr als geplant. Handle niemals ohne diese Grenze.</p></details>
@@ -373,13 +394,12 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
       <details><summary>Was bedeutet „Chance zu Risiko“?</summary><p>Es vergleicht den möglichen Gewinn mit dem möglichen Verlust. Bei 3 zu 1 kannst du etwa dreimal so viel gewinnen, wie du riskierst. Ab 1 zu 1 ist es in Ordnung, ab 2 zu 1 gut.</p></details>
       <details><summary>Was ist der Hebel?</summary><p>Mit Hebel handelst du mit mehr Geld, als du hast. Das vergrößert Gewinn und Verlust. Das System schlägt einen vorsichtigen Hebel vor. Anfänger bleiben am besten bei 1x oder 2x.</p></details>
       <details><summary>Wie sicher sind die Signale?</summary><p>Kein Signal ist sicher. Auch gute Signale gehen manchmal schief. Deshalb gibt es die Verlustgrenze und die Regel, nur 1 bis 3 Prozent des Kontos je Handel zu riskieren. Das ist keine Anlageberatung.</p></details>
-    </section>
-    <section data-o="10" class="panel" id="lvlp"><h2>Fibonacci-Level der Sequenz</h2><div class="tw"><table><thead><tr><th>Level</th><th>Preis</th><th>Bedeutung</th></tr></thead><tbody id="zt"></tbody></table></div>
-      <p class="note" style="margin-top:10px"><b>Aus dem Tradebook:</b> Sequenz 0-A-B-C, A bestätigt ab 0,382, Einstiegszone 0,5 / 0,559 / 0,618 / 0,667, Zielzone 161,8 bis 200 % (trendbasierte Extension 0-A-B), Stop knapp hinter 0,786 (1-Trade) oder fest in Pips (Multi-Trade, Krypto 100 Pips), Risiko höchstens 1 bis 3 %, CRV mindestens 1:1. <b>Eigene Festlegungen:</b> automatische Erkennung von 0 und A über Swing-Punkte, Mindeststrecke 3 ATR, Pip-Größe, Hebel-Regeln, Tages- und Gesamtlimit. Nicht umgesetzt: Gegentrade am Zielgebiet und Wiedereinstieg nach B-C-Korrektur. Kein Anlageratschlag.</p></section>
+    </section></div>
+      <div class="pcol"><section class="panel" id="about"><h2>Über das Börsensystem</h2><p class="note">Börsensystem nach SK: Handelssignale nach dem SK-System von Stefan Kassing für 12 Krypto-Coins. Das Börsensystem sendet keine Orders und ist eine Entscheidungshilfe, keine Anlageberatung. Die Regeln stammen aus dem Tradebook von Sascha Wenzel. Was genau nach dem Tradebook ist und was Näherung, steht im Handbuch.</p><div class="btnrow" style="margin-top:12px"><a class="btn" id="man2" href="handbuch.pdf" target="_blank" hidden>Handbuch öffnen</a></div></section></div>
+    </div>
   </div>
+</main>
 </div>
-</div>
-<nav id="tabs" aria-label="Bereiche"><a href="#hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Ampel</a><a href="#chartp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Chart</a><a href="#chips"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Coins</a><a href="#faq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/></svg>Hilfe</a></nav>
 <script>
 const COINS=['BTC','ETH','SOL','BNB','XRP','ADA','DOGE','AVAX','LINK','DOT','LTC','TON'];
 const BASE={BTC:64000,ETH:3100,SOL:150,BNB:580,XRP:0.55,ADA:0.45,DOGE:0.16,AVAX:35,LINK:15,DOT:7,LTC:80,TON:6};
@@ -616,7 +636,7 @@ function fireAlarm(o){
   if(AL.mode==='aus')return;
   const box=document.createElement('div');box.className='toast '+(o.cls==='pre'?'':o.cls);
   box.innerHTML=`<b>${o.title}</b><div style="white-space:pre-line">${o.text}</div>`;
-  box.onclick=()=>{box.remove();pick(o.coin)};$('toasts').appendChild(box);setTimeout(()=>box.remove(),20000);
+  box.onclick=()=>{box.remove();pick(o.coin);setTab('start')};$('toasts').appendChild(box);setTimeout(()=>box.remove(),20000);
   beep(o.up);
   try{if('Notification' in window&&Notification.permission==='granted')new Notification(o.title,{body:o.text.replace(/\n/g,' · '),requireInteraction:!!o.strong,tag:'sk-'+o.coin})}catch(x){}
   try{if(navigator.vibrate)navigator.vibrate(o.strong?[400,150,400,150,400]:[200])}catch(x){}
@@ -632,7 +652,7 @@ function showOverlay(o){
   $('alarm').firstElementChild.className='al-box '+o.cls;$('alarm').hidden=false;$('alk').focus();
   clearInterval(alarmTimer);alarmTimer=setInterval(()=>{beep(o.up);try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch(x){}},4000);
   clearInterval(titleTimer);let on=false;titleTimer=setInterval(()=>{document.title=(on=!on)?'⚠ '+o.title:baseTitle},900);
-  $('alk').onclick=()=>{const c=o.coin;if(alarmQ.length){showOverlay(alarmQ.shift())}else{ackAlarm()}pick(c)};
+  $('alk').onclick=()=>{const c=o.coin;if(alarmQ.length){showOverlay(alarmQ.shift())}else{ackAlarm()}pick(c);setTab('start')};
 }
 function ackAlarm(){clearInterval(alarmTimer);clearInterval(titleTimer);alarmTimer=titleTimer=null;document.title=baseTitle;$('alarm').hidden=true;try{navigator.vibrate&&navigator.vibrate(0)}catch(x){}}
 function pushNtfy(o){
@@ -689,14 +709,14 @@ function renderScanner(){renderChips();
       else if(s.state==='unconf'){st='<span class="tag mid">A unbestätigt</span>';ds=pctS(s.dist,1)}
       else st='<span class="tag mid">Zu tief</span>'}
     return `<tr class="click ${c===sel&&!custom?'sel':''}" data-c="${c}"><td>${c}${b.live?'':' *'}</td><td>${fmt(s.last)}</td><td>${mu}</td><td>${st}</td><td>${ds}</td></tr>`}).join('');
-  document.querySelectorAll('#scan tr[data-c]').forEach(tr=>tr.onclick=()=>pick(tr.dataset.c));
+  document.querySelectorAll('#scan tr[data-c]').forEach(tr=>tr.onclick=()=>{pick(tr.dataset.c);setTab('start')});
   const n=COINS.filter(c=>board[c]&&board[c].s&&board[c].s.dir!=='none').length;
   $('scn').textContent=(n?n+' aktive Signale. ':'Kein aktives Signal. ')+'Zeitebene '+tf()+'. Aktualisierung jede Minute. * = Beispieldaten.';
 }
 function renderLog(){
   const stTag=st=>st==='Ziel'?'<span class="tag long">Ziel</span>':st&&st.indexOf('Stop')===0?'<span class="tag short">'+st+'</span>':st==='BE fällig'?'<span class="tag wait">BE fällig</span>':'<span class="tag mid">offen</span>';
   $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
-  document.querySelectorAll('#log tr[data-c]').forEach(tr=>tr.onclick=()=>pick(tr.dataset.c));
+  document.querySelectorAll('#log tr[data-c]').forEach(tr=>tr.onclick=()=>{pick(tr.dataset.c);setTab('start')});
   const w=log.filter(e=>e.status==='Ziel').length,l=log.filter(e=>e.status&&e.status.indexOf('Stop')===0).length;
   $('lgs').textContent=w+l?`Auswertung: ${w} Treffer, ${l} Stopps (Quote ${Math.round(100*w/(w+l))} %). Stopps sind Fälle für die Fehleranalyse.`:'Der Status zeigt, ob ein Signal sein Ziel erreicht hat oder ausgestoppt wurde.';
 }
@@ -860,7 +880,7 @@ function hexA(h,a){h=h.replace('#','');const n=parseInt(h.length===3?h.split('')
 function rrect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
 function draw(b){
   const cv=$('cv'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
-  cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  if(!W||!H)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
   if(!b||!b.s)return;
   const s=b.s,cs=b.candles,seq=s.seq,PRO=document.body.classList.contains('pro');
   const f=css('--fg'),mu=css('--muted'),L=css('--long'),S=css('--short'),T=css('--target'),AC=css('--accent'),BG=css('--bg');
@@ -1064,7 +1084,7 @@ async function refresh1m(){
   draw1m();
 }
 function draw1m(){
-  const cv=$('cv1'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  const cv=$('cv1'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
   const nm=custom?'CSV':sel;$('l1sym').textContent=nm+' / USDT · 1 Min';
   const cs=L1.coin===sel?L1.candles:[];
   if(!cs.length){$('l1price').textContent='…';$('l1st').textContent='LÄDT';$('l1st').className='pill';return}
@@ -1103,7 +1123,12 @@ function parseCSV(t){
 $('csv').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{const cs=parseCSV(String(rd.result));if(cs.length<30){$('vm').textContent='CSV braucht mindestens 30 Kerzen';return}
     custom={name:f.name,candles:cs};custom.s=analyse(cs);renderMain();renderScanner()};rd.readAsText(f)});
-$('cfgb').onclick=()=>{const h=$('cfgp').hidden=!$('cfgp').hidden;$('cfgb').classList.toggle('off',h)};$('cfgb').classList.add('off');
+let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','more'].includes(TAB))TAB='start';
+function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));
+  document.querySelectorAll('#tabs [data-tab]').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
+  window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}})}
+document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
 (LOCAL||DIRECT?[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
 $('tf').value='4h';renderTfs();
@@ -1116,7 +1141,7 @@ function snd(){$('snd').textContent=sound?'Ton an':'Ton aus';$('snd').className=
 $('snd').onclick=()=>{sound=!sound;store.set('sk_snd',sound);snd();if(sound)beep(true)};snd();
 $('ntf').onclick=()=>{try{Notification.requestPermission().then(p=>{$('ntf').textContent=p==='granted'?'Hinweis an':'Hinweis blockiert';$('ntf').className=p==='granted'?'':'off'})}catch(e){}};
 try{if(Notification.permission==='granted'){$('ntf').textContent='Hinweis an';$('ntf').className=''}}catch(e){}
-if(LOCAL||DIRECT){$('man').hidden=false;$('man').href=LOCAL?'/handbuch.pdf':'handbuch.pdf';}
+if(LOCAL||DIRECT){[$('man'),$('man2')].forEach(a=>{a.hidden=false;a.href=LOCAL?'/handbuch.pdf':'handbuch.pdf'})}
 if(LOCAL){setInterval(()=>fetch('/api/ping').catch(()=>{}),5000);fetch('/api/ping').catch(()=>{})}
 let MODE=store.get('sk_mode','einfach');
 function applyMode(){document.body.classList.toggle('pro',MODE==='pro');document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===MODE));try{draw(cur())}catch(e){}}
@@ -1140,6 +1165,6 @@ setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('de-DE')},
 setInterval(()=>{if(!custom)refreshCoin(sel,false).then(()=>{renderMain();renderScanner()})},30000);
 setInterval(scan,60000);setInterval(refreshMtf,60000);
 board[sel]={candles:sample(sel,tf()),live:false,src:'Beispieldaten',ts:Date.now(),err:''};analyseCoin(sel);
-renderLog();renderMain();renderScanner();refresh1m();scan().then(refreshMtf);
+setTab(TAB);renderLog();renderMain();renderScanner();refresh1m();scan().then(refreshMtf);
 </script>
 <style>body{padding-top:max(16px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}</style><script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script></body></html>
