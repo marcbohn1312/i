@@ -384,7 +384,7 @@ body[data-tab="coins"] #chips{display:none}
       <p class="note" style="margin-top:8px" id="lqn"></p></section>
     <div class="pgrid">
       <div class="pcol"><section class="panel"><h2>Wo es eng wird</h2><div id="lqsum"></div></section></div>
-      <div class="pcol"><section class="panel"><h2>Echte Liquidationen live (alle Coins)</h2><div id="lqlive"><p class="note">wird geladen …</p></div></section>
+      <div class="pcol"><section class="panel"><h2>Echte Liquidationen live (alle Coins) <button type="button" id="lqhide" class="off" style="margin-left:auto;padding:4px 12px;font-size:11px"></button></h2><div id="lqlive"><p class="note">wird geladen …</p></div></section>
         <section class="panel"><h2>So liest du die Karte</h2><p class="note">Die Karte zeigt, bei welchen Preisen Positionen mit Hebel zwangsgeschlossen würden. Helle Streifen sind große Ansammlungen. Der Kurs wird von solchen Bereichen oft angezogen, weil dort viele Stops und Zwangsschließungen warten. Eine Garantie ist das nicht. Die Karte ist eine Schätzung nach Modell, wie bei Coinglass, und kein echtes Orderbuch. Sie ändert die SK-Signale nicht. Sie ist nur eine Zusatzinformation.</p></section></div>
     </div>
   </div>
@@ -1354,15 +1354,15 @@ async function loadLiq(force){
   LQ.busy=false;if(TAB==='liq')renderLiq();
 }
 /* Echte Liquidationen: Binance (alle Coins) und Bybit live mitgeschnitten, in 5-Minuten-Eimern 24 Std gespeichert */
-const LE={b:store.get('sk_le',{}),start:store.get('sk_le_start',0),ok:{Binance:0,Bybit:0},last:[],big:store.get('sk_le_big',null),scope:'all',dirty:false};
+const LE={b:store.get('sk_le',{}),start:store.get('sk_le_start',0),ok:{Binance:0,Bybit:0,OKX:0},hide:store.get('sk_le_hide',false),last:[],big:store.get('sk_le_big',null),scope:'all',dirty:false};
 const LEWIN=[['1H',36e5],['4H',144e5],['12H',432e5],['24H',864e5]];
 function leCoin(sym){const c=String(sym||'').replace(/(USDT|USDC|BUSD|USD)$/,'');return COINS.includes(c)?c:'Andere'}
-function leAdd(ex,sym,long,usd,price){
-  if(!(usd>0))return;const now=Date.now(),bk=Math.floor(now/3e5)*3e5,c=leCoin(sym),k=bk+'|'+c;
-  if(!LE.start){LE.start=now;store.set('sk_le_start',now)}
+function leAdd(ex,sym,long,usd,price,ts){
+  if(!(usd>0))return;const now=ts||Date.now(),bk=Math.floor(now/3e5)*3e5,c=leCoin(sym),k=bk+'|'+c;
+  if(!ts&&!LE.start){LE.start=now;store.set('sk_le_start',now)}
   const e=LE.b[k]||(LE.b[k]=[0,0]);e[long?0:1]+=usd;
-  LE.last.unshift({t:now,ex,coin:c,sym:String(sym).replace(/(USDT|USDC|BUSD|USD)$/,''),long,usd,p:price});LE.last.length=Math.min(LE.last.length,30);
-  if(!LE.big||now-LE.big.t>864e5||usd>LE.big.usd)LE.big={t:now,ex,coin:String(sym).replace(/(USDT|USDC|BUSD|USD)$/,''),long,usd};
+  if(!ts){LE.last.unshift({t:now,ex,coin:c,sym:String(sym).replace(/(USDT|USDC|BUSD|USD)$/,''),long,usd,p:price});LE.last.length=Math.min(LE.last.length,30)}
+  if(Date.now()-now<864e5&&(!LE.big||Date.now()-LE.big.t>864e5||usd>LE.big.usd))LE.big={t:now,ex,coin:String(sym).replace(/(USDT|USDC|BUSD|USD)$/,''),long,usd};
   LE.dirty=true;
 }
 function leSum(ms,coin){const lim=Date.now()-ms;let l=0,s=0;
@@ -1376,27 +1376,42 @@ function leConnect(name,url,onOpen,onMsg,delay){
   ws.onmessage=m=>{try{onMsg(JSON.parse(m.data))}catch(e){}};
   ws.onerror=()=>{LE.ok[name]=-1};
   ws.onclose=()=>{if(LE.ok[name]===1)LE.ok[name]=0;LE.dirty=true;setTimeout(()=>leConnect(name,url,onOpen,onMsg,Math.min(delay*2,60000)),delay)};
-  if(name==='Bybit')setInterval(()=>{try{ws.readyState===1&&ws.send('{"op":"ping"}')}catch(e){}},20000);
+  if(name==='Bybit'||name==='OKX')setInterval(()=>{try{ws.readyState===1&&ws.send(name==='OKX'?'ping':'{"op":"ping"}')}catch(e){}},20000);
 }
 function liqStart(){
   if(!(LOCAL||DIRECT)||!window.WebSocket||LE.started)return;LE.started=1;
   leConnect('Binance','wss://fstream.binance.com/ws/!forceOrder@arr',null,j=>{const o=j&&j.o;if(o&&o.s)leAdd('Binance',o.s,o.S==='SELL',+o.q*+(o.ap||o.p),+(o.ap||o.p))});
   leConnect('Bybit','wss://stream.bybit.com/v5/public/linear',ws=>ws.send(JSON.stringify({op:'subscribe',args:COINS.map(c=>'allLiquidation.'+c+'USDT')})),
     j=>{if(j&&j.topic&&/^allLiquidation/.test(j.topic)&&Array.isArray(j.data))j.data.forEach(x=>leAdd('Bybit',x.s,x.S==='Buy',+x.v*+x.p,+x.p))});
+  let ct=null;
+  const okxCt=async()=>{if(ct)return ct;ct={};try{const r=await fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP',{cache:'no-store'});const j=await r.json();
+    (j.data||[]).forEach(i=>{ct[i.instId]={v:+i.ctVal*(+i.ctMult||1),usd:i.ctValCcy==='USD'}})}catch(e){}return ct};
+  const okxUsd=(id,sz,px)=>{const c=ct&&ct[id];if(!c)return 0;return c.usd?sz*c.v:sz*c.v*px};
+  const okxLong=d=>d.posSide==='long'||(d.posSide==='net'&&d.side==='sell');
+  okxCt().then(async()=>{
+    leConnect('OKX','wss://ws.okx.com:8443/ws/v5/public',ws=>{ws.send(JSON.stringify({op:'subscribe',args:[{channel:'liquidation-orders',instType:'SWAP'}]}));LE.okxLive=Date.now()},
+      j=>{if(!(j&&j.data))return;j.data.forEach(x=>(x.details||[]).forEach(d=>leAdd('OKX',x.instId.split('-')[0],okxLong(d),okxUsd(x.instId,+d.sz,+d.bkPx),+d.bkPx)))});
+    if(!Object.keys(LE.b).length){   /* erster Start: bereits geschehene OKX-Liquidationen nachladen */
+      for(const c of COINS){try{const r=await fetch(`https://www.okx.com/api/v5/public/liquidation-orders?instType=SWAP&uly=${c}-USDT&state=filled&limit=100`,{cache:'no-store'}),j=await r.json();
+        (j.data||[]).forEach(x=>(x.details||[]).forEach(d=>{const t=+d.ts;if(t>Date.now()-864e5&&t<(LE.okxLive||Date.now()))leAdd('OKX',c,okxLong(d),okxUsd(x.instId||c+'-USDT-SWAP',+d.sz,+d.bkPx),+d.bkPx,t)}))}catch(e){}}
+      if(Object.keys(LE.b).length&&!LE.start){LE.start=Date.now()-864e5}LE.dirty=true}
+  });
   setInterval(lePersist,30000);addEventListener('pagehide',lePersist);
   setInterval(()=>{if(LE.dirty){LE.dirty=false;renderLive()}},1000);
 }
 const leU=v=>v>=1e9?(v/1e9).toFixed(2).replace('.',',')+' Mrd. $':v>=1e6?(v/1e6).toFixed(1).replace('.',',')+' Mio. $':v>=1e3?(v/1e3).toFixed(1).replace('.',',')+' Tsd. $':Math.round(v)+' $';
 function renderLive(){
+  const hb=$('lqhide');if(hb){hb.textContent=LE.hide?'Einblenden':'Ausblenden';hb.onclick=()=>{LE.hide=!LE.hide;store.set('sk_le_hide',LE.hide);renderLive()}}
+  if(LE.hide){$('lqlive').hidden=true;return}$('lqlive').hidden=false;
   const el=$('lqlive');if(!el||TAB!=='liq'&&el.dataset.done)return;
   if(!(LOCAL||DIRECT)){el.innerHTML='<p class="note">Echte Liquidationen gibt es nur in der Windows-Version und in der Handy-App.</p>';el.dataset.done=1;return}
-  const co=LE.scope==='coin'?sel:null,srcs=['Binance','Bybit'].map(n=>n+' '+(LE.ok[n]===1?'●':'○')).join(' · ');
+  const co=LE.scope==='coin'?sel:null,srcs=['Binance','Bybit','OKX'].map(n=>n+' '+(LE.ok[n]===1?'●':'○')).join(' · ');
   const mins=LE.start?Math.round((Date.now()-LE.start)/6e4):0,since=LE.start?(mins<60?mins+' Min':mins<2880?Math.round(mins/60)+' Std':Math.round(mins/1440)+' Tage'):'';
   const rows=LEWIN.map(([n,ms])=>{const r=leSum(ms,co),part=LE.start&&Date.now()-LE.start<ms;
     return `<div class="lqg"><span class="lqg-n">${n} Rekt${part?'*':''}</span><span class="lqg-t">${leU(r.t)}</span><span class="lqdn">Longs<b>${leU(r.l)}</b></span><span class="lqup">Shorts<b>${leU(r.s)}</b></span></div>`}).join('');
   const big=LE.big&&Date.now()-LE.big.t<864e5?`<p class="note" style="margin-top:8px">Größte Einzelliquidation (24 Std): <b>${LE.big.ex}-${LE.big.coin}</b> mit <b>${leU(LE.big.usd)}</b> (${LE.big.long?'Long':'Short'}).</p>`:'';
   const ev=LE.last.filter(e=>!co||e.coin===co).slice(0,6).map(e=>`<div class="lqrow"><span class="${e.long?'lqdn':'lqup'}">${e.long?'Long':'Short'} ${e.sym} <small>${e.ex}</small></span><span><b>${leU(e.usd)}</b> · ${new Date(e.t).toLocaleTimeString('de-DE')}</span></div>`).join('');
-  el.innerHTML=`<div class="seg" id="lqsc" role="group" aria-label="Auswahl"><button type="button" data-s="all" class="${co?'':'on'}">Alle Coins</button><button type="button" data-s="coin" class="${co?'on':''}">${sel}</button></div>${rows}${big}${ev?'<h2 style="margin-top:14px">Zuletzt</h2>'+ev:'<p class="note" style="margin-top:8px">'+((LE.ok.Binance===1||LE.ok.Bybit===1)?'Verbunden. Es wartet auf die nächste Zwangsschließung …':(LE.ok.Binance===-1&&LE.ok.Bybit===-1?'Die Börsen-Meldungen sind hier nicht erreichbar.':'Verbindung wird aufgebaut …'))+'</p>'}<p class="note" style="margin-top:8px">Quellen: ${srcs}${since?' · gesammelt seit '+since:''}. Die Zahlen entstehen live in dieser App: Es zählt nur, was bei geöffneter App ankam${LE.start&&mins<1440?'. * = Zeitraum noch nicht voll':''}. Coinglass addiert zusätzlich weitere Börsen, deshalb sind seine Summen größer.</p>`;
+  el.innerHTML=`<div class="seg" id="lqsc" role="group" aria-label="Auswahl"><button type="button" data-s="all" class="${co?'':'on'}">Alle Coins</button><button type="button" data-s="coin" class="${co?'on':''}">${sel}</button></div>${rows}${big}${ev?'<h2 style="margin-top:14px">Zuletzt</h2>'+ev:'<p class="note" style="margin-top:8px">'+((LE.ok.Binance===1||LE.ok.Bybit===1||LE.ok.OKX===1)?'Verbunden. Es wartet auf die nächste Zwangsschließung …':(LE.ok.Binance===-1&&LE.ok.Bybit===-1&&LE.ok.OKX===-1?'Die Börsen-Meldungen sind hier nicht erreichbar.':'Verbindung wird aufgebaut …'))+'</p>'}<p class="note" style="margin-top:8px">Quellen: ${srcs}${since?' · gesammelt seit '+since:''}. Die Zahlen entstehen live in dieser App: Es zählt nur, was bei geöffneter App ankam${LE.start&&mins<1440?'. * = Zeitraum noch nicht voll':''}. Coinglass addiert noch weitere Börsen, deshalb bleiben seine Summen größer.</p>`;
   el.querySelectorAll('#lqsc [data-s]').forEach(b=>b.onclick=()=>{LE.scope=b.dataset.s;renderLive()});
 }
 document.querySelectorAll('#lqr [data-r]').forEach(b=>b.onclick=()=>{LQ.r=b.dataset.r;store.set('sk_liqr',LQ.r);LQ.data=null;renderLiq();loadLiq(true)});
