@@ -314,7 +314,7 @@ body[data-tab="coins"] #chips{display:none}
       <div class="plan" id="plan"></div>
       <dl id="vd"></dl>
     </section></div>
-      <div class="pcol"><section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section></div>
+      <div class="pcol"><section class="panel" id="edgep" hidden></section><section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section></div>
     </div>
   </div>
   <div class="page" id="pg-chart">
@@ -633,8 +633,25 @@ function checkOne(c,quiet,s){
   const kind=s.state==='counter'?'Gegentrade':s.seq.kind==='neu'?'Haupt':s.seq.kind.indexOf('Wieder')===0?'Wiedereinstieg':s.seq.kind.indexOf('verl')===0?'Verlängert':'Manuell';
   const e={t:Date.now(),coin:c,tf:tf(),dir:s.dir,kind,entry:s.lv.entry,sl:s.lv.sl,tp1:s.lv.tp1,crv:s.crv,old:quiet,status:'offen'};
   log.unshift(e);log=log.slice(0,60);store.set('sk_log',log);renderLog();
-  if(!quiet)alertSignal(e);
+  edgeCheck(c,s,e).catch(()=>null).then(ed=>{if(ed&&ed.n){e.edge=ed;store.set('sk_log',log);renderLog();renderChips()}if(!quiet)alertSignal(e)});
 }
+/* Doppelter Vorteil (Confluence): SK-Signal plus mindestens ein unabhängiger zweiter Faktor in derselben Richtung.
+   Faktor 1: großer Liquidations-Bereich liegt zwischen Einstieg und Gewinnziel (Magnet). Faktor 2: die übergeordnete Zeitebene hat eine Sequenz in dieselbe Richtung.
+   Das ist eine Zusatzmarkierung. Sie ändert nichts am SK-Signal. */
+async function edgeCheck(c,s,e){
+  if(s.state==='counter'||!s.seq)return null;
+  const L=s.dir==='long',f=[];
+  try{const k=await liqKlines(c,'3d');
+    if(k&&!k.noVol&&k.candles.length>=30){
+      const d=liqCompute(k.candles,null),up=liqPeaks(d,'up'),dn=liqPeaks(d,'down'),mx=Math.max(up[0]?up[0].v:0,dn[0]?dn[0].v:0);
+      const pk=(L?up:dn).find(x=>x.v>=.4*mx&&(L?x.price>e.entry&&x.price<=e.tp1*1.01:x.price<e.entry&&x.price>=e.tp1*.99));
+      if(pk)f.push('Liquiditäts-Magnet bei '+fmt(pk.price)+' zwischen Einstieg und Ziel')}
+  }catch(x){}
+  try{const pt=PARENT[e.tf];if(pt&&(pt!=='1w'||LOCAL||DIRECT)){const r=await fetchCandles(c,pt),ps=analyse(r.candles,c+'|'+pt);
+    if(ps&&ps.seq&&ps.seq.d===(L?1:-1))f.push('Übergeordnete Ebene '+pt+' läuft in dieselbe Richtung')}}catch(x){}
+  return f.length?{n:f.length+1,f}:null;
+}
+function edgeFor(c){const e=log.find(x=>x.coin===c&&x.tf===tf()&&x.edge&&(x.status==='offen'||x.status==='BE fällig')&&Date.now()-x.t<864e5);return e||null}
 function updateOutcomes(c){
   const b=board[c];if(!b||!b.live)return;let ch=false;
   const cs=b.candles.slice(-3),hi=Math.max(...cs.map(x=>x.h)),lo=Math.min(...cs.map(x=>x.l));
@@ -650,8 +667,9 @@ const AL={mode:store.get('sk_al','alarm'),pw:store.get('sk_pw',1),wl:store.get('
 let alarmTimer=null,titleTimer=null,wake=null;const baseTitle=document.title;
 function alertSignal(e){
   const L=e.dir==='long',ktxt=e.kind&&e.kind!=='Haupt'&&e.kind!=='Test'?' ('+e.kind+')':'';
-  fireAlarm({cls:e.dir,head:(L?'KAUFEN':'VERKAUFEN')+'-SIGNAL',title:(L?'KAUFEN ':'VERKAUFEN ')+e.coin+' ('+(L?'Long':'Short')+')',
-    text:`${e.coin}/USDT · ${e.tf}${ktxt}\nEinstieg ${fmt(e.entry)}\nVerlustgrenze ${fmt(e.sl)}\nGewinnziel ${fmt(e.tp1)}\nChance zu Risiko ${e.crv.toFixed(1)} zu 1`,coin:e.coin,up:L,strong:true});
+  const ed=e.edge&&e.edge.n,edh=ed?(ed>2?'DREIFACHER VORTEIL: ':'DOPPELTER VORTEIL: '):'',edt=ed?'\n★ '+e.edge.f.join('\n★ '):'';
+  fireAlarm({cls:e.dir,head:edh+(L?'KAUFEN':'VERKAUFEN')+'-SIGNAL',title:(ed?'★ ':'')+(L?'KAUFEN ':'VERKAUFEN ')+e.coin+' ('+(L?'Long':'Short')+')',
+    text:`${e.coin}/USDT · ${e.tf}${ktxt}${edt}\nEinstieg ${fmt(e.entry)}\nVerlustgrenze ${fmt(e.sl)}\nGewinnziel ${fmt(e.tp1)}\nChance zu Risiko ${e.crv.toFixed(1)} zu 1`,coin:e.coin,up:L,strong:true});
 }
 function alertPre(c,s){
   const L=s.seq.d===1;
@@ -721,7 +739,7 @@ function chipInfo(c){
   const b=board[c],s=b&&b.s;if(!s||!s.seq)return{t:'–',k:'',p:s?fmt(s.last):'…'};
   const cand=[s,s.alt].filter(x=>x&&x.seq);
   const sg=cand.find(x=>x.dir!=='none');
-  if(sg)return{t:sg.dir==='long'?'Kaufen':'Verkaufen',k:sg.dir==='long'?'l':'s',p:fmt(s.last)};
+  if(sg)return{t:(sg.dir==='long'?'Kaufen':'Verkaufen')+(edgeFor(c)?' ★':''),k:sg.dir==='long'?'l':'s',p:fmt(s.last)};
   const nr=cand.filter(x=>x.state==='wait'&&x.dist<=.03).sort((a,b)=>a.dist-b.dist)[0];
   if(nr)return{t:'Gleich '+pctS(nr.dist,1).replace(' %','%'),k:'g',p:fmt(s.last)};
   return{t:'Warten',k:'',p:fmt(s.last)};
@@ -758,7 +776,7 @@ function renderScanner(){renderChips();
 }
 function renderLog(){
   const stTag=st=>st==='Ziel'?'<span class="tag long">Ziel</span>':st&&st.indexOf('Stop')===0?'<span class="tag short">'+st+'</span>':st==='BE fällig'?'<span class="tag wait">BE fällig</span>':'<span class="tag mid">offen</span>';
-  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
+  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}${e.edge?` <span class="tag wait" title="${e.edge.f.join(' · ').replace(/"/g,'')}">★ ${e.edge.n>2?'3x':'2x'} Vorteil</span>`:''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
   document.querySelectorAll('#log tr[data-c]').forEach(tr=>tr.onclick=()=>{pick(tr.dataset.c);setTab('start')});
   const w=log.filter(e=>e.status==='Ziel').length,l=log.filter(e=>e.status&&e.status.indexOf('Stop')===0).length;
   $('lgs').textContent=w+l?`Auswertung: ${w} Treffer, ${l} Stopps (Quote ${Math.round(100*w/(w+l))} %). Stopps sind Fälle für die Fehleranalyse.`:'Der Status zeigt, ob ein Signal sein Ziel erreicht hat oder ausgestoppt wurde.';
@@ -1046,7 +1064,10 @@ function draw(b){
     g.fillStyle=(t.dark||t.now)?'#031018':f;g.save();g.beginPath();g.rect(x+4,t.y-10,w-6,20);g.clip();g.fillText((t.arrow||'')+t.text,x+9,t.y+.5);g.restore()});
 }
 
-function renderEntries(s){
+function renderEdge(){const ed=edgeFor(sel),el=$('edgep');if(!el)return;
+  if(!ed){el.hidden=true;return}
+  el.hidden=false;el.innerHTML=`<h2>★ ${ed.edge.n>2?'Dreifacher':'Doppelter'} Vorteil bei ${ed.coin} (${ed.dir==='long'?'Long':'Short'})</h2><p class="note" style="color:var(--fg)">SK-Signal und mindestens ein unabhängiger zweiter Faktor in dieselbe Richtung:</p><div class="lqrow"><span>SK-Signal</span><b>${ed.dir==='long'?'Kaufen':'Verkaufen'}</b></div>${ed.edge.f.map(x=>`<div class="lqrow"><span>★ ${x}</span></div>`).join('')}<p class="note" style="margin-top:8px">Das erhöht die Wahrscheinlichkeit, ist aber keine Garantie. Das SK-Signal selbst bleibt unverändert.</p>`}
+function renderEntries(s){renderEdge();
   const by={};[s,s.alt].forEach(x=>{if(x&&x.seq)by[x.seq.d]=x});
   const card=d=>{
     const x=by[d],long=d===1,cls=long?'long':'short',name=long?'Kaufen (Long)':'Verkaufen (Short)';
