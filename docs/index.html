@@ -163,6 +163,7 @@ body:not(.pro) :is(#verdict,#zonesp,#mtfp,#patp,#riskp,#tmp,#lvlp,#mpick,#mauto,
 .chip .sy{font:700 15px var(--display);letter-spacing:.06em}
 .chip .pr{font:500 12px var(--mono);color:var(--muted)}
 .chip.on .pr{color:rgba(3,16,24,.7)}
+.chip .ch{font:600 11.5px var(--mono);color:var(--muted)}.chip .ch.u{color:var(--long)}.chip .ch.d{color:var(--short)}.chip.on .ch,.chip.on .ch.u,.chip.on .ch.d{color:#031018;font-weight:700}
 .chip .bd{font:700 10.5px var(--display);letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(129,151,189,.16);color:var(--muted);margin-top:2px}
 .chip .bd.l{background:var(--long);color:#04140d}.chip .bd.s{background:var(--short);color:#1a0210}.chip .bd.g{background:rgba(255,203,92,.2);color:var(--wait)}
 .chip.on .bd:not(.l):not(.s){background:rgba(3,16,24,.14);color:#031018}
@@ -699,6 +700,23 @@ function beep(up){if(!sound)return;try{actx=actx||new (window.AudioContext||wind
 function cur(){return custom?{candles:custom.candles,live:false,src:'Eigene CSV',ts:Date.now(),s:custom.s,err:''}:board[sel]}
 function pick(c){sel=c;custom=null;picking=0;hint('');if($('sz').value!=='mh')$('mo').value='';L1={coin:'',candles:[],ts:0,live:false,err:''};draw1m();refresh1m();$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
 function sigCls(c){const b=board[c],s=b&&b.s;if(!s)return'';const d=s.dir!=='none'?s.dir:(s.alt&&s.alt.dir!=='none'?s.alt.dir:'');return d==='long'?'sl':d==='short'?'ss':''}
+/* 24-Stunden-Veränderung für die Coin-Auswahl */
+let CH24={};
+function chg(c){let v=CH24[c];
+  if(v==null){const b=board[c],cs=b&&b.candles,st={'15m':9e5,'1h':36e5,'4h':144e5,'1d':864e5}[tf()];
+    if(cs&&st&&cs.length>2&&cs[cs.length-1].t){const n=Math.round(864e5/st),a=cs[Math.max(0,cs.length-1-n)];if(a&&a.c>0&&cs.length-1>=n)v=(cs[cs.length-1].c/a.c-1)*100}}
+  if(v==null||!isFinite(v))return'<span class="ch">24h –</span>';
+  return `<span class="ch ${v>=0?'u':'d'}">24h ${(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')} %</span>`}
+async function load24(){
+  if(!(LOCAL||DIRECT))return;
+  const q=encodeURIComponent(JSON.stringify(COINS.map(c=>c+'USDT')));
+  for(const host of ['api.binance.com','data-api.binance.vision']){
+    try{const r=await fetch(`https://${host}/api/v3/ticker/24hr?symbols=${q}&type=MINI`,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
+      if(!r.ok)continue;const j=await r.json();if(!Array.isArray(j))continue;
+      j.forEach(x=>{const c=String(x.symbol||'').replace(/USDT$/,'');const o=+x.openPrice,l=+x.lastPrice;
+        if(COINS.includes(c)&&o>0)CH24[c]=(l/o-1)*100});
+      renderChips();return}catch(e){}}
+}
 function chipInfo(c){
   const b=board[c],s=b&&b.s;if(!s||!s.seq)return{t:'–',k:'',p:s?fmt(s.last):'…'};
   const cand=[s,s.alt].filter(x=>x&&x.seq);
@@ -710,7 +728,7 @@ function chipInfo(c){
 }
 function renderChips(){
   const box=$('chips'),x=box.scrollLeft;
-  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}</span><span class="pr">${i.p}</span><span class="bd ${i.k}">${i.t}</span></button>`}).join('');
+  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}</span><span class="pr">${i.p}</span>${chg(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
   box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>pick(b.dataset.c));box.scrollLeft=x;
 }
 const TFL={'15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'1W'};
@@ -1347,7 +1365,7 @@ if(+AL.wl)setWake();
 window.addEventListener('resize',()=>{draw(cur());draw1m();if(TAB==='liq')drawLiq()});
 setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('de-DE')},1000);$('clock').textContent=new Date().toLocaleTimeString('de-DE');
 setInterval(()=>{if(!custom)refreshCoin(sel,false).then(()=>{renderMain();renderScanner()})},30000);
-setInterval(scan,60000);setInterval(refreshMtf,60000);
+setInterval(scan,60000);setInterval(load24,60000);load24();setInterval(refreshMtf,60000);
 board[sel]={candles:sample(sel,tf()),live:false,src:'Beispieldaten',ts:Date.now(),err:''};analyseCoin(sel);
 setTab(TAB);renderLog();renderMain();renderScanner();refresh1m();scan().then(refreshMtf);
 </script>
