@@ -1,5 +1,5 @@
 // Offline-Hülle der App. Kursdaten werden nie zwischengespeichert, Schriften schon.
-const V = 'sk-board-v23', F = 'sk-fonts-v1';
+const V = 'sk-board-v24', F = 'sk-fonts-v1';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'handbuch.pdf'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

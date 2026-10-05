@@ -429,7 +429,7 @@ body[data-tab="coins"] #chips{display:none}
       <p class="note" style="margin-top:8px">Krypto handelt rund um die Uhr. Die Börsen in Asien, Europa und den USA beeinflussen die Kurse trotzdem, vor allem zu den Öffnungszeiten und bei Veröffentlichungen.</p></section>
     <section class="panel" id="calrec"></section>
     <section class="panel" id="calmk"><h2>Börsendaten <span class="pill" id="calmks" style="margin-left:6px;vertical-align:middle">lädt …</span></h2><div class="mk" id="calmkg"></div><p class="note" id="calmkn" style="margin-top:8px"></p></section>
-    <section class="panel" id="calev"><h2>Wichtige Termine <span class="pill" id="calsrc" style="margin-left:6px;vertical-align:middle">lädt …</span></h2>
+    <section class="panel" id="calev"><h2>Wichtige Termine <span class="pill" id="calsrc" style="margin-left:6px;vertical-align:middle">lädt …</span><button type="button" id="calrf" class="off" style="margin-left:auto;padding:4px 12px;font-size:11px">Aktualisieren</button></h2>
       <div class="zbar"><div class="seg" id="calr" role="group" aria-label="Zeitraum"><button type="button" data-r="day">Heute</button><button type="button" data-r="week">Diese Woche</button></div>
         <div class="seg" id="calf" role="group" aria-label="Wichtigkeit"><button type="button" data-f="high">Nur wichtig</button><button type="button" data-f="all">Alle</button></div></div>
       <p class="note" id="calnext" style="color:var(--fg);margin-bottom:8px"></p>
@@ -1613,13 +1613,13 @@ function calTypical(){
 async function loadCal(){
   if(CAL.busy)return;CAL.busy=true;let ev=null,src='';
   const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(9000):undefined});if(!r.ok)throw 0;return r.json()};
-  try{
-    let j=null;
-    if(LOCAL)j=await get('/api/calendar');else if(DIRECT)j=await get('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
-    if(Array.isArray(j)&&j.length){ev=j.map(x=>({t:Date.parse(x.date),title:String(x.title||''),cur:String(x.country||''),imp:x.impact,fc:x.forecast||'',pv:x.previous||'',ac:x.actual||''})).filter(x=>x.t&&CREG[x.cur]);src='Live (Forex Factory)'}
-  }catch(e){}
+  const FF='https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+  const parse=j=>Array.isArray(j)&&j.length>5?j.map(x=>({t:Date.parse(x.date),title:String(x.title||''),cur:String(x.country||''),imp:x.impact,fc:x.forecast||'',pv:x.previous||'',ac:x.actual||''})).filter(x=>x.t&&CREG[x.cur]):null;
+  /* Reihenfolge: eigenes Programm (Windows), gleiche Seite (feste Kopie), direkt, dann öffentliche Weiterleitungen gegen die Browser-Sperre */
+  const tries=LOCAL?[['Live (Programm)','/api/calendar']]:DIRECT?[['Live (Forex Factory)',FF],['Live (über Weiterleitung 1)','https://api.allorigins.win/raw?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 2)','https://corsproxy.io/?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 3)','https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(FF)]]:[];
+  for(const [nm,u] of tries){try{const r=parse(await get(u));if(r&&r.length){ev=r;src=nm;break}}catch(e){}}
   if(!ev||!ev.length){ev=calTypical();src='Typische Termine'}
-  ev.sort((a,b)=>a.t-b.t);CAL.ev=ev;CAL.src=src;CAL.ts=Date.now();CAL.busy=false;renderCal();calBanner();
+  ev.sort((a,b)=>a.t-b.t);CAL.ev=ev;CAL.src=src;CAL.ts=Date.now();CAL.busy=false;renderCal();calBanner();renderRec();
 }
 const sameDay=(a,b)=>{const x=new Date(a),y=new Date(b);return x.toDateString()===y.toDateString()};
 function renderCal(){
@@ -1628,7 +1628,7 @@ function renderCal(){
   document.querySelectorAll('#calr [data-r]').forEach(b=>b.classList.toggle('on',b.dataset.r===CAL.r));
   document.querySelectorAll('#calf [data-f]').forEach(b=>b.classList.toggle('on',b.dataset.f===CAL.f));
   const now=Date.now(),live=CAL.src.indexOf('Live')===0;
-  $('calsrc').textContent=CAL.src||'lädt …';$('calsrc').className='pill '+(live?'live':'warn');
+  $('calsrc').textContent=(CAL.src||'lädt …')+(CAL.ts&&live?' · Stand '+hm(CAL.ts):'');$('calsrc').className='pill '+(live?'live':'warn');
   let list=CAL.ev.filter(e=>CAL.r==='week'||sameDay(e.t,now));
   if(CAL.f==='high')list=list.filter(e=>e.imp==='High'||e.imp==='Holiday');
   const nxt=CAL.ev.find(e=>e.t>now&&e.imp==='High');
@@ -1643,7 +1643,7 @@ function renderCal(){
     h=Object.keys(days).map(k=>`<div class="cc"><div class="dayh">${new Date(days[k][0].t).toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit'})}</div>${days[k].map(row).join('')}</div>`).join('')||'<p class="note">Keine Termine gefunden.</p>';$('calcols').className='calcols days'}
   $('calcols').innerHTML=h;
   $('calcols').querySelectorAll('.ev>button').forEach(b=>b.onclick=()=>{CAL.open=CAL.open===b.dataset.id?null:b.dataset.id;renderCal()});
-  $('calnote').textContent=live?'Quelle: Forex Factory Wochenkalender. Zeiten in deiner Ortszeit. Prognose, Vorher und Ist kommen direkt aus dem Kalender, Ist erscheint erst nach der Veröffentlichung.':'Der Live-Kalender ist hier nicht erreichbar. Gezeigt werden nur typische Wochentermine der USA, ihre Uhrzeiten sind nicht live geprüft. Ob der Arbeitsmarktbericht diese Woche wirklich dran ist, prüfe in deinem Kalender.';
+  $('calnote').textContent=live?'Quelle: Forex Factory Wochenkalender'+(CAL.src.indexOf('Weiterleitung')>0?' über einen öffentlichen Weiterleitungsdienst (nötig, weil der Browser den direkten Abruf sperrt)':'')+'. Er wird alle 5 Minuten neu geladen, der Ist-Wert erscheint nach der Veröffentlichung. Zeiten in deiner Ortszeit.':'Der Live-Kalender ist hier nicht erreichbar. Gezeigt werden nur typische Wochentermine der USA, ihre Uhrzeiten sind nicht live geprüft. Ob der Arbeitsmarktbericht diese Woche wirklich dran ist, prüfe in deinem Kalender.';
 }
 function calDetail(e,info,im){
   const now=Date.now(),when=new Date(e.t).toLocaleString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' Uhr',rel=e.t>now?'in '+dur(e.t-now):'vor '+dur(now-e.t);
@@ -1661,9 +1661,10 @@ function calBanner(){
   el.hidden=false;el.textContent=`⚠ ${e.t>now?'In '+dur(e.t-now):'Gerade'}: ${calTitle(e.title)} (${CFLAG[e.cur]||''} ${e.cur}, hoch). Kurse können stark ausschlagen. Tippen für Details.`;
   el.onclick=()=>{CAL.open=e.t+'|'+e.title+'|'+e.cur;setTab('cal')};
 }
+$('calrf').onclick=()=>{$('calsrc').textContent='lädt …';loadCal()};
 document.querySelectorAll('#calr [data-r]').forEach(b=>b.onclick=()=>{CAL.r=b.dataset.r;store.set('sk_calr',CAL.r);renderCal()});
 document.querySelectorAll('#calf [data-f]').forEach(b=>b.onclick=()=>{CAL.f=b.dataset.f;store.set('sk_calf',CAL.f);renderCal()});
-setInterval(()=>{if(TAB==='cal')renderSess();calBanner()},30000);setInterval(loadCal,30*60000);setInterval(()=>{if(TAB==='cal')loadMk()},120000);
+setInterval(()=>{if(TAB==='cal')renderSess();calBanner()},30000);setInterval(loadCal,5*60000);setInterval(()=>{if(TAB==='cal')loadMk()},120000);
 let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','liq','cal','more'].includes(TAB))TAB='start';
 function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));
