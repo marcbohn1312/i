@@ -409,6 +409,11 @@ body[data-tab="coins"] #chips{display:none}
         <p class="note" id="lgs" style="margin-top:8px"></p>
         <p class="note" style="margin-top:8px">Ein Signal entsteht, wenn A bestätigt ist (Korrektur über 0,382), der Preis in der Kauf- oder Verkaufszone steht und das CRV mindestens dem Mindest-CRV entspricht. Das Board sendet keine Orders.</p></section></div>
     </div>
+    <section class="panel" id="btp"><h2>Backtest: Wie gut war das System?</h2>
+      <p class="note" style="color:var(--fg);margin-bottom:10px">Die App läuft Kerze für Kerze durch die Vergangenheit und prüft, welche SK-Signale es gegeben hätte und ob danach das Gewinnziel 1 oder die Verlustgrenze zuerst erreicht wurde. Es gilt die oben gewählte Zeitebene.</p>
+      <div class="zbar"><span class="note" id="btinfo"></span><span class="zb"><button type="button" id="btone">Nur <span id="btcoin">BTC</span></button><button type="button" id="btall">Alle 12 Coins</button></span></div>
+      <div id="btout"></div><canvas id="btc" style="width:100%;height:150px;display:none;margin-top:10px" aria-label="Kapitalverlauf in R"></canvas>
+      <p class="note" style="margin-top:10px">Vereinfachungen: Einstieg zum angezeigten Einstiegslevel, Ziel ist Gewinnziel 1, Stop und Ziel in derselben Kerze zählt als Stop (vorsichtig), Gebühren und Gleitkosten sind nicht eingerechnet, ein Trade ohne Entscheidung nach 200 Kerzen zählt als offen. Die automatische Erkennung von Punkt 0 und A ist eine Annäherung an das SK-System. Vergangene Ergebnisse sind keine Garantie für die Zukunft.</p></section>
   </div>
   <div class="page" id="pg-liq">
     <section class="panel" id="liqp"><h2>Liquiditäts-Karte <span class="pill" id="lqsrc" style="margin-left:6px;vertical-align:middle">lädt …</span></h2>
@@ -912,7 +917,8 @@ function renderHero(s,b,c){
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
   set('wait','no','Zu spät','Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
 }
-function renderMain(){
+function renderMain(){try{$('btcoin').textContent=sel}catch(e){}
+
   $('swv').textContent=$('sw').value;
   const b=cur();if(!b||!b.s){$('vm').textContent='LÄDT';return}
   const s=b.s,seq=s.seq,cs=b.candles;
@@ -1677,6 +1683,67 @@ $('calrf').onclick=()=>{$('calsrc').textContent='lädt …';loadCal()};
 document.querySelectorAll('#calr [data-r]').forEach(b=>b.onclick=()=>{CAL.r=b.dataset.r;store.set('sk_calr',CAL.r);renderCal()});
 document.querySelectorAll('#calf [data-f]').forEach(b=>b.onclick=()=>{CAL.f=b.dataset.f;store.set('sk_calf',CAL.f);renderCal()});
 setInterval(()=>{if(TAB==='cal')renderSess();calBanner()},30000);setInterval(loadCal,5*60000);setInterval(()=>{if(TAB==='cal')loadMk()},120000);
+
+/* ---------- Backtest ---------- */
+const BT={busy:false};
+async function btCoin(c,t,prog){
+  const r=await fetchCandles(c,t,1000),cs=r.candles,seen=new Set(),trades=[];
+  for(let i=80;i<cs.length-1;i++){
+    if(i%20===0){await new Promise(z=>setTimeout(z));if(prog)prog(c,i,cs.length)}
+    let s;try{s=analyse(cs.slice(0,i+1),'bt|'+c)}catch(e){continue}
+    for(const x of [s,s&&s.alt]){
+      if(!x||!x.seq||x.dir==='none'||!x.lv)continue;
+      const key=[x.dir,x.state==='counter'?'g':'h',x.seq.O.p,x.seq.A.p].join('|');if(seen.has(key))continue;seen.add(key);
+      const L=x.dir==='long',en=x.lv.entry,sl=x.lv.sl,tp=x.lv.tp1,risk=Math.abs(en-sl),rew=Math.abs(tp-en);
+      if(!(risk>0)||!(rew>0))continue;
+      let res='offen',R=0;
+      for(let j=i+1;j<Math.min(cs.length,i+201);j++){
+        const stop=L?cs[j].l<=sl:cs[j].h>=sl,hit=L?cs[j].h>=tp:cs[j].l<=tp;
+        if(stop){res='Stop';R=-1;break}if(hit){res='Ziel';R=rew/risk;break}}
+      trades.push({i,t:cs[i].t,coin:c,dir:x.dir,res,R,crv:rew/risk});
+    }
+  }
+  return{coin:c,n:cs.length,t0:cs[0].t,t1:cs[cs.length-1].t,trades,src:r.src};
+}
+function btStats(trs){
+  const dec=trs.filter(x=>x.res!=='offen'),w=dec.filter(x=>x.res==='Ziel'),l=dec.filter(x=>x.res==='Stop');
+  const sum=dec.reduce((a,x)=>a+x.R,0);let streak=0,mx=0;dec.slice().sort((a,b)=>a.i-b.i).forEach(x=>{if(x.res==='Stop'){streak++;mx=Math.max(mx,streak)}else streak=0});
+  const avgW=w.length?w.reduce((a,x)=>a+x.R,0)/w.length:0;
+  return{all:trs.length,w:w.length,l:l.length,open:trs.length-dec.length,rate:dec.length?w.length/dec.length:0,avgW,exp:dec.length?sum/dec.length:0,sum,mx,be:avgW>0?1/(1+avgW):0};
+}
+function btRender(res,single){
+  const fR=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')+' R',fp=v=>Math.round(v*100)+' %';
+  const row=(n,st)=>`<tr><td><b>${n}</b></td><td>${st.all}</td><td>${st.w} / ${st.l}</td><td>${st.w+st.l?fp(st.rate):'–'}</td><td>${st.avgW?st.avgW.toFixed(1).replace('.',',')+' zu 1':'–'}</td><td class="${st.exp>=0?'lqdn':'lqup'}">${st.w+st.l?fR(st.exp):'–'}</td><td>${st.mx}</td></tr>`;
+  const tot=btStats(res.flatMap(r=>r.trades));
+  const d0=Math.min(...res.map(r=>r.t0)),d1=Math.max(...res.map(r=>r.t1)),df=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  let h=`<div class="tw"><table><thead><tr><th>Coin</th><th>Signale</th><th>Ziel / Stop</th><th>Trefferquote</th><th>Ø Gewinn</th><th>Erwartung pro Trade</th><th>Längste Verlustserie</th></tr></thead><tbody>${res.length>1?res.map(r=>row(r.coin,btStats(r.trades))).join('')+row('Gesamt',tot):row(res[0].coin,tot)}</tbody></table></div>`;
+  const ok=tot.w+tot.l>=10;
+  h+=`<div class="rec ${tot.exp>0?'l':'h'}" style="margin-top:12px"><b class="big">${tot.w+tot.l?(tot.exp>0?'Im Zeitraum im Plus':'Im Zeitraum im Minus'):'Keine entschiedenen Trades'}</b><ul>`
+   +`<li>Zeitraum: ${df(d0)} bis ${df(d1)}, Zeitebene ${tf()}. ${tot.all} Signale, davon ${tot.w+tot.l} entschieden.</li>`
+   +(tot.w+tot.l?`<li>Trefferquote ${fp(tot.rate)}. Bei einem durchschnittlichen Gewinn von ${tot.avgW.toFixed(1).replace('.',',')} zu 1 liegt die Mindest-Trefferquote zum Plus bei ${fp(tot.be)}.</li><li>Summe ${fR(tot.sum)} bei Einsatz von 1 R pro Trade (1 R = dein Risiko je Trade, zum Beispiel 1 % des Kontos).</li>`:'')
+   +(ok?'':'<li>Zu wenige Trades für eine verlässliche Aussage (unter 10). Wähle eine kleinere Zeitebene oder „Alle 12 Coins“.</li>')+'</ul></div>';
+  $('btout').innerHTML=h;
+  const cv=$('btc');
+  if(single&&tot.w+tot.l>1){
+    cv.style.display='block';const dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+    const dec=res[0].trades.filter(x=>x.res!=='offen').sort((a,b)=>a.i-b.i);let c=0;const pts=[0];dec.forEach(x=>pts.push(c+=x.R));
+    const mn=Math.min(...pts,0),mx=Math.max(...pts,0),pad=8,X=i=>pad+(W-2*pad)*i/(pts.length-1),Y=v=>H-pad-(H-2*pad)*(v-mn)/((mx-mn)||1);
+    g.strokeStyle='rgba(129,151,189,.4)';g.setLineDash([4,4]);g.beginPath();g.moveTo(pad,Y(0));g.lineTo(W-pad,Y(0));g.stroke();g.setLineDash([]);
+    g.strokeStyle=pts[pts.length-1]>=0?css('--long'):css('--short');g.lineWidth=2;g.beginPath();pts.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.stroke();
+    g.fillStyle=css('--muted');g.font='11px '+css('--mono');g.fillText('Kapitalverlauf in R ('+dec.length+' Trades)',pad+2,14);
+  }else cv.style.display='none';
+}
+async function btStart(coins){
+  if(BT.busy)return;BT.busy=true;const t=tf(),res=[];$('btone').disabled=$('btall').disabled=true;
+  try{
+    for(const c of coins){
+      try{res.push(await btCoin(c,t,(cc,i,n)=>{$('btinfo').textContent=`Berechne ${cc} ${t}: ${Math.round(100*i/n)} % (${res.length+1} von ${coins.length})`}))}catch(e){}
+    }
+    if(!res.length)$('btout').innerHTML='<p class="note">Die Kursdaten konnten nicht geladen werden. Prüfe die Internetverbindung.</p>';
+    else{btRender(res,coins.length===1);$('btinfo').textContent='Fertig.'}
+  }finally{BT.busy=false;$('btone').disabled=$('btall').disabled=false}
+}
+$('btone').onclick=()=>btStart([sel]);$('btall').onclick=()=>btStart(COINS.slice());
 let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','liq','cal','more'].includes(TAB))TAB='start';
 function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));
