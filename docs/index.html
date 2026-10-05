@@ -632,7 +632,8 @@ function analyseDir(cs,key,wantD,useManual){
   s.depth=seq.B?(d*(A.p-seq.B.p))/R:0;           // tiefste Korrektur bisher (Punkt B)
   s.pos=d*(A.p-last)/R;                          // aktuelle Korrekturtiefe
   s.confirmed=s.depth>=.382;                     // A ist erst nach Überschreiten des 0,382er Levels bestätigt
-  s.state=!s.confirmed?'unconf':s.pos<.5?'wait':s.pos<=.667+.02?'in':'beyond';
+  s.broken=s.depth>.667+.02;                      // Punkt B lag schon hinter der Einstiegszone: Korrekturlevel überschritten, Setup ungültig (Tradebook)
+  s.state=!s.confirmed?'unconf':(s.broken||s.pos>.667+.02)?'beyond':s.pos<.5?'wait':'in';
   s.Bp=s.state==='in'&&seq.B?seq.B.p:s.lvl(.618);
   s.tgt=t=>s.Bp+d*t*R;                           // trendbasierte Extension 0-A-B: B + t * (A-0)
   s.dist=(s.state==='wait'||s.state==='unconf')?Math.abs(last-s.lvl(.5))/last:0;
@@ -646,7 +647,7 @@ function analyseDir(cs,key,wantD,useManual){
   // Gegentrade im Zielgebiet der ursprünglichen Sequenz (Workflow: Markt erreicht Ziellevel C)
   if(seq.ext){
     const {R0,B0}=seq.ext,t1=B0+d*1.618*R0,t2=B0+d*2*R0,tol=5*pz1;
-    const inZ=d===1?(last>=t1-tol&&last<=t2):(last<=t1+tol&&last>=t2);
+    const inZ=(d===1?(last>=t1-tol&&last<=t2):(last<=t1+tol&&last>=t2))&&s.pos<.382;   // Gegentrade nur, solange Ziel 1 (0,382) noch vor dem Kurs liegt
     s.counter={t1,t2,levels:[1.618,1.809,2].map(t=>B0+d*t*R0),active:inZ};
     if(inZ){
       s.state='counter';s.side=-d;s.multi=false;entry=last;sl=t2+d*pz;
