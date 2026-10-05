@@ -50,6 +50,12 @@ a.btn{text-decoration:none;display:inline-block}
 .nw .nt{font:600 14px/1.35 var(--body);color:var(--fg)}.nw .nm{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:5px;font:500 11.5px var(--mono);color:var(--muted)}
 .nw .nb{padding:2px 12px 12px;font:400 13.5px/1.55 var(--body)}.nw .nb a{color:var(--accent)}
 .nw .ct{padding:1px 7px;border-radius:999px;background:rgba(77,227,255,.12);color:var(--accent);font:600 10.5px var(--mono)}.nw .ct.w{background:rgba(255,203,92,.18);color:var(--wait)}
+.lockbn{border-color:rgba(255,75,134,.6);background:var(--short-bg);font:600 14px/1.45 var(--body);padding:12px 14px}.lockbn b{color:var(--short)}.lockbn button{margin-top:8px}
+.jform{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}.jform label{display:flex;flex-direction:column;gap:4px;font:500 12px var(--body);color:var(--muted)}
+.jform input,.jform select{font:500 14px var(--mono);padding:8px 10px;border-radius:8px;border:1px solid var(--line-s);background:var(--panel-s);color:var(--fg);min-width:0}
+.jt{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:10px 12px;background:rgba(129,151,189,.05)}
+.jt .jh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font:600 13.5px var(--body)}.jt .jm{font:500 12px var(--mono);color:var(--muted);margin-top:4px}.jt .jb{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.jt .jb button{padding:4px 10px;font-size:11px}
+@media(max-width:700px){.jform{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -339,6 +345,7 @@ body[data-tab="coins"] #chips{display:none}
 </div>
 <main>
   <div class="page" id="pg-start">
+    <div class="panel lockbn" id="lockbn" hidden></div>
     <div class="panel calbn" id="calbn" hidden role="button" tabindex="0"></div>
     <section class="panel live1" id="live1" aria-label="Live-Chart">
   <div class="l1-head"><div class="l1-t"><span class="dot"></span><span class="l1-sym" id="l1sym">BTC / USDT · 1 Min</span></div><div class="l1-p"><b id="l1price">…</b><span id="l1chg"></span></div><span class="pill" id="l1st">LÄDT</span></div>
@@ -381,6 +388,7 @@ body[data-tab="coins"] #chips{display:none}
     </div>
   </div>
   <div class="page" id="pg-order">
+    <div class="panel lockbn" id="lockbn2" hidden></div>
     <div class="pgrid">
       <div class="pcol"><section data-o="1" class="panel" id="posp"><h2>Deine Order für die Börsen-App</h2><div class="ordctl">
       <label for="sz" style="grid-column:1/-1">Position berechnen nach<select id="sz"><option value="risk" selected>Risiko (empfohlen): Position aus deinem Risiko</option><option value="mh">Margin und Hebel: Position aus deiner Margin</option></select></label>
@@ -405,6 +413,22 @@ body[data-tab="coins"] #chips{display:none}
       <li>Analyse von oben nach unten: Monat, Woche bis Stunde, dann 30-Minuten-Chart zur Bestätigung.</li>
     </ul></section></div>
     </div>
+  <section class="panel" id="jp" style="margin-top:16px"><h2>Trade-Tagebuch <span class="pill" id="jsum" style="margin-left:6px;vertical-align:middle"></span><span class="zb"><button type="button" id="jnew">Neuer Trade</button><button type="button" id="jexp" class="off">Export</button></span></h2>
+    <div id="jlock"></div>
+    <div id="jform" class="jform" hidden>
+      <label>Coin<select id="jc_coin"></select></label>
+      <label>Richtung<select id="jc_dir"><option value="long">Long</option><option value="short">Short</option></select></label>
+      <label>Einstieg<input id="jc_en" type="number" step="any" inputmode="decimal"></label>
+      <label>Verlustgrenze<input id="jc_sl" type="number" step="any" inputmode="decimal"></label>
+      <label>Gewinnziel<input id="jc_tp" type="number" step="any" inputmode="decimal"></label>
+      <label>Risiko (USDT)<input id="jc_rk" type="number" step="any" inputmode="decimal"></label>
+      <label style="grid-column:1/-1">Notiz<input id="jc_nt" type="text" maxlength="200" placeholder="z. B. Signal 4h, Doppelter Vorteil"></label>
+      <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="jc_fill">Aus aktuellem Signal füllen</button><button type="button" id="jc_save">Speichern</button><button type="button" id="jc_cancel" class="off">Abbrechen</button></div>
+      <p class="note" id="jc_msg" style="grid-column:1/-1"></p>
+    </div>
+    <div id="jstats"></div><canvas id="jc" style="width:100%;height:140px;display:none;margin:10px 0" aria-label="Kapitalverlauf"></canvas>
+    <div id="jlist"></div>
+    <p class="note" style="margin-top:10px">Die Daten liegen nur in diesem Gerät. Tagesverlust und Verlustserie aus dem Tagebuch steuern die Sperre. Das Tagebuch hat keinen Einfluss auf das SK-Signal.</p></section>
   </div>
   <div class="page" id="pg-coins">
     <div class="pgrid">
@@ -466,6 +490,8 @@ body[data-tab="coins"] #chips{display:none}
     <label for="mh"><span>Max. Hebel bei Automatik <span class="v" id="mhv">10</span>x</span><input id="mh" type="range" min="1" max="50" step="1" value="10"></label>
     <label for="dl"><span>Tagesverlust <span class="v" id="dlv">3</span> %</span><input id="dl" type="range" min="1" max="10" step="0.5" value="3"></label>
     <label for="hr"><span>Gesamtrisiko <span class="v" id="hrv">5</span> %</span><input id="hr" type="range" min="1" max="10" step="0.5" value="5"></label>
+    <label for="lsr"><span>Pause nach Verlusten in Folge <span class="v" id="lsrv">3</span></span><input id="lsr" type="range" min="0" max="6" step="1" value="3"></label>
+    <label for="lk">Sperre bei Limit<select id="lk"><option value="mute" selected>Hinweis, Alarme stumm (empfohlen)</option><option value="note">Nur Hinweis</option><option value="off">Aus</option></select></label>
   </div>
   <div class="cfg-group"><h3>Alarm</h3>
     <label for="al">Alarm-Art<select id="al"><option value="aus">Aus</option><option value="ton">Nur Ton und Meldung</option><option value="alarm" selected>Alarm bis Quittieren</option></select></label>
@@ -754,6 +780,7 @@ function alertPre(c,s){
 }
 function fireAlarm(o){
   if(AL.mode==='aus')return;
+  try{if(o.strong&&$('lk').value==='mute'&&lockState().on){const b=document.createElement('div');b.className='toast';b.innerHTML='<b>SPERRE AKTIV</b><div>Signal: '+nesc(o.title)+'<br>Heute keine neuen Trades (Limit erreicht). Ohne Ton.</div>';b.onclick=()=>b.remove();$('toasts').appendChild(b);setTimeout(()=>b.remove(),20000);return}}catch(e){}
   const box=document.createElement('div');box.className='toast '+(o.cls==='pre'?'':o.cls);
   box.innerHTML=`<b>${o.title}</b><div style="white-space:pre-line">${o.text}</div>`;
   box.onclick=()=>{box.remove();pick(o.coin);setTab('start')};$('toasts').appendChild(box);setTimeout(()=>box.remove(),20000);
@@ -1755,6 +1782,114 @@ async function btStart(coins){
 }
 $('btone').onclick=()=>btStart([sel]);$('btall').onclick=()=>btStart(COINS.slice());
 
+
+/* ---------- Einstellungen merken ---------- */
+(function(){
+  const ids=[...document.querySelectorAll('#cfgp input[id],#cfgp select[id]')].map(e=>e.id).filter(i=>!['csv','al','pw','wl','nt','altest'].includes(i)).concat(['sz','mm','lm','lf']);
+  const saved=store.get('sk_cfg',{});
+  ids.forEach(id=>{const e=$(id);if(!e||e.type==='file'||e.type==='button')return;if(saved[id]!=null)e.value=saved[id];
+    const save=()=>{const c=store.get('sk_cfg',{});c[id]=e.value;store.set('sk_cfg',c)};e.addEventListener('input',save);e.addEventListener('change',save)});
+})();
+/* ---------- Trade-Tagebuch ---------- */
+let JR=store.get('sk_journal',[]);const JSAVE=()=>store.set('sk_journal',JR.slice(-500));
+const jR=t=>{const L=t.dir==='long',risk=Math.abs(t.entry-t.sl);return risk>0?(L?(t.exit-t.entry):(t.entry-t.exit))/risk:0};
+const fR=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')+' R';
+const fU=v=>(v>=0?'+':'−')+fmtU(Math.abs(v))+' USDT';
+function jClose(t,exit,how,err){t.exit=exit;t.R=jR(t);t.pnl=t.R*(t.risk||0);t.status=how||(t.R>0.05?'Ziel':t.R<-0.05?'Stop':'BE');t.tc=Date.now();if(err)t.err=err}
+function jAuto(){
+  let ch=false;
+  JR.forEach(t=>{if(t.status!=='offen'||t.tf!==tf())return;const b=board[t.coin];if(!b||!b.live)return;
+    for(const c of b.candles){if(!c.t||c.t<=t.t)continue;const L=t.dir==='long',stop=L?c.l<=t.sl:c.h>=t.sl,hit=t.tp&&(L?c.h>=t.tp:c.l<=t.tp);
+      if(stop){jClose(t,t.sl,'Stop');t.auto=1;ch=true;break}if(hit){jClose(t,t.tp,'Ziel');t.auto=1;ch=true;break}}});
+  if(ch){JSAVE();renderJournal()}
+}
+function jStats(list){
+  const d=list.filter(t=>t.status!=='offen'),w=d.filter(t=>t.R>0.05),l=d.filter(t=>t.R<-0.05),sum=d.reduce((a,t)=>a+t.R,0),usd=d.reduce((a,t)=>a+(t.pnl||0),0);
+  let st=0,mx=0;d.slice().sort((a,b)=>a.tc-b.tc).forEach(t=>{if(t.R<-0.05){st++;mx=Math.max(mx,st)}else if(t.R>0.05)st=0});
+  const gw=w.reduce((a,t)=>a+(t.pnl||0),0),gl=-l.reduce((a,t)=>a+(t.pnl||0),0);
+  return{n:d.length,w:w.length,l:l.length,be:d.length-w.length-l.length,rate:(w.length+l.length)?w.length/(w.length+l.length):0,sum,usd,exp:d.length?sum/d.length:0,mx,pf:gl>0?gw/gl:(gw>0?Infinity:0),best:d.length?Math.max(...d.map(t=>t.R)):0,worst:d.length?Math.min(...d.map(t=>t.R)):0};
+}
+/* Sperre */
+const LKD=()=>new Date().toDateString();
+let LKO=store.get('sk_lk_over','');
+function lockState(){
+  if($('lk').value==='off')return{on:false};
+  const acc=+$('acc').value||0,dl=(+$('dl').value||0)/100,hr=(+$('hr').value||0)/100,N=+$('lsr').value||0,today=JR.filter(t=>t.status!=='offen'&&new Date(t.tc).toDateString()===LKD()).sort((a,b)=>a.tc-b.tc);
+  const loss=-today.reduce((a,t)=>a+Math.min(0,t.pnl||0),0)+0,net=-today.reduce((a,t)=>a+(t.pnl||0),0),open=JR.filter(t=>t.status==='offen').reduce((a,t)=>a+(t.risk||0),0);
+  const why=[];
+  if(acc>0&&net>=acc*dl-1e-9)why.push(`Tagesverlust-Limit erreicht (${fmtU(net)} von ${fmtU(acc*dl)} USDT)`);
+  if(N>0&&today.length>=N&&today.slice(-N).every(t=>t.R<-0.05))why.push(`${N} Verluste in Folge heute`);
+  if(acc>0&&hr>0&&open>=acc*hr-1e-9)why.push(`Gesamtrisiko offener Trades erreicht (${fmtU(open)} von ${fmtU(acc*hr)} USDT)`);
+  return{on:why.length>0&&LKO!==LKD(),why,over:why.length>0&&LKO===LKD()};
+}
+function renderLock(){
+  const ls=lockState(),html=ls.on?`<b>SPERRE: Heute keine neuen Trades.</b><br>${ls.why.join('<br>')}.<br><span style="font-weight:400;color:var(--muted)">Das schützt dein Konto (Tradebook: Risiko begrenzen). ${$('lk').value==='mute'?'Neue Signale melden sich nur als Hinweis, ohne Ton und Vollbild-Alarm. ':''}Morgen ab 00:00 Uhr gilt die Sperre nicht mehr.</span><br><button type="button" class="off" data-lkoff="1">Sperre für heute aufheben</button>`:'';
+  ['lockbn','lockbn2'].forEach(id=>{const el=$(id);if(!el)return;el.hidden=!ls.on;el.innerHTML=html;el.querySelectorAll('[data-lkoff]').forEach(b=>b.onclick=()=>{if(confirm('Sperre für heute wirklich aufheben? Das Limit schützt dich vor weiteren Verlusten.')){LKO=LKD();store.set('sk_lk_over',LKO);renderLock();renderJournal()}})});
+  const jl=$('jlock');if(jl)jl.innerHTML=ls.on?'<div class="rec h" style="margin-bottom:10px"><b class="big">Sperre aktiv</b><ul>'+ls.why.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>':ls.over?'<p class="note" style="margin-bottom:10px">Die Sperre wurde für heute aufgehoben.</p>':'';
+  return ls;
+}
+const jDay=t=>new Date(t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const JERR=['','Stop nicht eingehalten','Zu früh eingestiegen','Gegen die Sequenz','Kein SK-Signal','Position zu groß','Emotion / FOMO','Stop zu eng','Marktlage / News'];
+function renderJournal(){
+  if(!$('jlist'))return;
+  const ls=renderLock(),st=jStats(JR);
+  $('jsum').textContent=JR.length?`${st.n} abgeschlossen · ${JR.filter(t=>t.status==='offen').length} offen`:'noch leer';
+  const coinSel=$('jc_coin');if(!coinSel.options.length)COINS.forEach(c=>coinSel.add(new Option(c,c)));
+  $('jstats').innerHTML=st.n?`<div class="mk"><div class="mi"><span>Trades</span><b>${st.n}</b></div><div class="mi"><span>Trefferquote</span><b>${Math.round(st.rate*100)} %</b></div><div class="mi"><span>Summe</span><b class="${st.sum>=0?'lqdn':'lqup'}">${fR(st.sum)}</b><i class="${st.usd>=0?'u':'d'}">${fU(st.usd)}</i></div><div class="mi"><span>Erwartung / Trade</span><b>${fR(st.exp)}</b></div><div class="mi"><span>Profit-Faktor</span><b>${st.pf===Infinity?'∞':st.pf.toFixed(2).replace('.',',')}</b></div><div class="mi"><span>Längste Verlustserie</span><b>${st.mx}</b></div><div class="mi"><span>Bester / Schlechtester</span><b>${fR(st.best)}</b><i class="d">${fR(st.worst)}</i></div></div>`:'<p class="note">Trage deine Trades ein, dann zeigt dir das Tagebuch Statistik und Fehler. Tippe auf „Neuer Trade“.</p>';
+  /* Verlustgründe */
+  const errs={};JR.filter(t=>t.status!=='offen'&&t.R<-0.05&&t.err).forEach(t=>errs[t.err]=(errs[t.err]||0)+1);
+  const eg=Object.entries(errs).sort((a,b)=>b[1]-a[1]);
+  if(eg.length)$('jstats').innerHTML+=`<h2 style="margin-top:14px">Warum Verluste?</h2>`+eg.map(([k,v])=>`<div class="lqrow"><span>${nesc(k)}</span><b>${v}×</b></div>`).join('');
+  /* Verlauf */
+  const cv=$('jc'),dec=JR.filter(t=>t.status!=='offen').sort((a,b)=>a.tc-b.tc);
+  if(dec.length>1){cv.style.display='block';const dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(W&&H){cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);let c=0;const pts=[0];dec.forEach(t=>pts.push(c+=(t.pnl||0)));
+    const mn=Math.min(...pts,0),mx=Math.max(...pts,0),pad=8,X=i=>pad+(W-2*pad)*i/(pts.length-1),Y=v=>H-pad-(H-2*pad)*(v-mn)/((mx-mn)||1);
+    g.strokeStyle='rgba(129,151,189,.4)';g.setLineDash([4,4]);g.beginPath();g.moveTo(pad,Y(0));g.lineTo(W-pad,Y(0));g.stroke();g.setLineDash([]);
+    g.strokeStyle=pts[pts.length-1]>=0?css('--long'):css('--short');g.lineWidth=2;g.beginPath();pts.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.stroke();
+    g.fillStyle=css('--muted');g.font='11px '+css('--mono');g.fillText('Kapitalverlauf in USDT ('+dec.length+' Trades)',pad+2,14)}}else cv.style.display='none';
+  /* Liste */
+  const rows=JR.slice().sort((a,b)=>b.t-a.t).slice(0,30);
+  $('jlist').innerHTML=rows.map(t=>{const open=t.status==='offen',L=t.dir==='long';
+    return `<div class="jt" data-id="${t.id}"><div class="jh"><span class="tag ${L?'long':'short'}">${L?'Long':'Short'}</span><span>${nesc(t.coin)} ${nesc(t.tf||'')}</span><span class="tag ${open?'mid':t.R>0.05?'long':t.R<-0.05?'short':'wait'}">${nesc(t.status)}${t.auto?' (auto)':''}</span>${open?'':`<b class="${t.R>=0?'lqdn':'lqup'}">${fR(t.R)} · ${fU(t.pnl||0)}</b>`}</div>
+      <div class="jm">${jDay(t.t)} · Einstieg ${fmt(t.entry)} · Stop ${fmt(t.sl)}${t.tp?' · Ziel '+fmt(t.tp):''} · Risiko ${fmtU(t.risk||0)} USDT${t.err?' · '+nesc(t.err):''}</div>${t.note?`<div class="jm" style="color:var(--fg)">${nesc(t.note)}</div>`:''}
+      <div class="jb">${open?`<button type="button" data-a="tp">Ziel erreicht</button><button type="button" data-a="sl">Ausgestoppt</button><button type="button" data-a="be">Break-even</button><button type="button" data-a="ex">Anderer Ausstieg</button>`:(t.R<-0.05?`<button type="button" data-a="err">Fehlergrund</button>`:'')}<button type="button" class="off" data-a="del">Löschen</button></div></div>`}).join('');
+  $('jlist').querySelectorAll('.jt').forEach(el=>{const t=JR.find(x=>String(x.id)===el.dataset.id);el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a;
+    if(a==='tp'){jClose(t,t.tp||t.entry,t.tp?'Ziel':'BE')}
+    else if(a==='sl')jClose(t,t.sl,'Stop');
+    else if(a==='be')jClose(t,t.entry,'BE');
+    else if(a==='ex'){const v=parseFloat(String(prompt('Ausstiegspreis:',fmt(t.entry))||'').replace(',','.'));if(!(v>0))return;jClose(t,v)}
+    else if(a==='err'){const m=JERR.slice(1).map((x,i)=>(i+1)+' '+x).join('\n'),v=+prompt('Was war der Grund? Nummer eingeben:\n'+m,'');if(!(v>=1&&v<JERR.length))return;t.err=JERR[v]}
+    else if(a==='del'){if(!confirm('Diesen Trade löschen?'))return;JR=JR.filter(x=>x!==t)}
+    if(a==='sl'&&t.R<-0.05&&!t.err){const m=JERR.slice(1).map((x,i)=>(i+1)+' '+x).join('\n'),v=+prompt('Was war der Grund für den Verlust? Nummer eingeben (oder leer lassen):\n'+m,'');if(v>=1&&v<JERR.length)t.err=JERR[v]}
+    JSAVE();renderJournal()})});
+}
+$('jnew').onclick=()=>{$('jform').hidden=!$('jform').hidden;$('jc_msg').textContent='';if(!$('jform').hidden){$('jc_coin').value=sel;if(!$('jc_rk').value)$('jc_rk').value=Math.round((+$('acc').value||0)*(+$('rk').value||0)/100*100)/100}};
+$('jc_cancel').onclick=()=>{$('jform').hidden=true};
+$('jc_fill').onclick=()=>{const c=$('jc_coin').value,b=board[c],s=b&&b.s,x=s&&s.lv?s:null;if(!x){$('jc_msg').textContent='Für diesen Coin liegt noch keine Analyse vor.';return}
+  $('jc_dir').value=s.side===1||s.seq&&s.seq.d===1&&s.state!=='counter'?'long':'short';if(s.state==='counter')$('jc_dir').value=s.side===1?'long':'short';
+  $('jc_en').value=s.lv.entry;$('jc_sl').value=s.lv.sl;$('jc_tp').value=s.lv.tp1;$('jc_msg').textContent='Aus dem aktuellen Plan für '+c+' gefüllt. Prüfe die Werte.'};
+$('jc_save').onclick=()=>{
+  const t={id:Date.now(),t:Date.now(),coin:$('jc_coin').value,dir:$('jc_dir').value,entry:+$('jc_en').value,sl:+$('jc_sl').value,tp:+$('jc_tp').value||0,risk:+$('jc_rk').value||0,note:$('jc_nt').value.trim(),tf:tf(),status:'offen'};
+  const L=t.dir==='long';
+  if(!(t.entry>0&&t.sl>0)){$('jc_msg').textContent='Bitte Einstieg und Verlustgrenze eintragen.';return}
+  if(L?!(t.sl<t.entry):!(t.sl>t.entry)){$('jc_msg').textContent='Die Verlustgrenze muss bei Long unter und bei Short über dem Einstieg liegen.';return}
+  if(t.tp&&(L?!(t.tp>t.entry):!(t.tp<t.entry))){$('jc_msg').textContent='Das Gewinnziel muss bei Long über und bei Short unter dem Einstieg liegen.';return}
+  const ls=lockState();if(ls.on&&!confirm('Die Sperre ist aktiv ('+ls.why[0]+'). Trade trotzdem eintragen?'))return;
+  JR.push(t);JSAVE();$('jform').hidden=true;$('jc_nt').value='';renderJournal();
+};
+$('jexp').onclick=async()=>{
+  if(!JR.length){alert('Das Tagebuch ist noch leer.');return}
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"',n=v=>String(+(+v).toFixed(6)).replace('.',',');
+  const head=['Datum','Coin','Zeitebene','Richtung','Einstieg','Stop','Ziel','Risiko USDT','Status','Ausstieg','R','Ergebnis USDT','Fehlergrund','Notiz'];
+  const rows=JR.slice().sort((a,b)=>a.t-b.t).map(t=>[new Date(t.t).toLocaleString('de-DE'),t.coin,t.tf,t.dir==='long'?'Long':'Short',n(t.entry),n(t.sl),t.tp?n(t.tp):'',n(t.risk||0),t.status,t.exit?n(t.exit):'',t.status==='offen'?'':n(t.R),t.status==='offen'?'':n(t.pnl||0),t.err||'',t.note||''].map(q).join(';'));
+  const csv='﻿'+head.map(q).join(';')+'\r\n'+rows.join('\r\n'),name='Trade-Tagebuch-SK.csv';
+  try{const f=new File([csv],name,{type:'text/csv'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Trade-Tagebuch'});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}catch(e){try{await navigator.clipboard.writeText(csv);alert('Export in die Zwischenablage kopiert.')}catch(x){alert('Export nicht möglich.')}}
+};
+['acc','dl','hr','lsr','lk'].forEach(id=>$(id).addEventListener('input',()=>{$('lsrv').textContent=$('lsr').value;renderLock()}));
+$('lsrv').textContent=$('lsr').value;
+setInterval(()=>{jAuto();renderLock()},30000);
 /* ---------- Krypto-News ---------- */
 const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
 const nesc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1836,7 +1971,7 @@ setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('de-DE')},
 setInterval(()=>{if(!custom)refreshCoin(sel,false).then(()=>{renderMain();renderScanner()})},30000);
 setInterval(scan,60000);setInterval(load24,60000);load24();setInterval(refreshMtf,60000);
 board[sel]={candles:sample(sel,tf()),live:false,src:'Beispieldaten',ts:Date.now(),err:''};analyseCoin(sel);
-loadCal();setTab(TAB);renderLog();renderMain();renderScanner();refresh1m();scan().then(refreshMtf);
+renderJournal();loadCal();setTab(TAB);renderLog();renderMain();renderScanner();refresh1m();scan().then(refreshMtf);
 </script>
 <style>body{padding-top:max(16px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}</style><script>(function(){try{if(!navigator.standalone)return;var pr=document.createElement('div');pr.style.cssText='position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden';document.body.appendChild(pr);var env=parseFloat(getComputedStyle(pr).paddingTop)||0;pr.remove();
 var fix=function(){if(env<20&&screen.height-innerHeight<24){document.body.style.paddingTop=(screen.height>=812?56:28)+'px'}};fix();addEventListener('orientationchange',function(){setTimeout(fix,300)})}catch(e){}})();</script><script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script></body></html>
