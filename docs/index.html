@@ -249,6 +249,9 @@ body:not(.pro) .lg-pro{display:none}body.pro .lg-simple{display:none}
 .ent-rows .s b{color:var(--short)}.ent-rows .t b{color:var(--long)}
 .ent-card.dim{opacity:.62}
 .ent-note{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.zbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:2px 0 8px}
+.zbar .seg button{padding:5px 10px;font-size:11.5px}.zb{display:inline-flex;gap:6px;margin-left:auto}.zb button{padding:4px 12px;font-size:14px;min-width:34px}
+#cv,#cv1{touch-action:pan-y;cursor:grab}#cv.drag,#cv1.drag{cursor:grabbing}
 .live1{padding:12px 14px 10px}
 .l1-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;margin-bottom:6px}
 .l1-t{display:flex;align-items:center;font:600 13px var(--mono);letter-spacing:.06em;color:var(--muted)}
@@ -302,9 +305,10 @@ body[data-tab="coins"] #chips{display:none}
 </div>
 <main>
   <div class="page" id="pg-start">
-    <section class="panel live1" id="live1" aria-label="Live-Chart 1 Minute">
+    <section class="panel live1" id="live1" aria-label="Live-Chart">
   <div class="l1-head"><div class="l1-t"><span class="dot"></span><span class="l1-sym" id="l1sym">BTC / USDT · 1 Min</span></div><div class="l1-p"><b id="l1price">…</b><span id="l1chg"></span></div><span class="pill" id="l1st">LÄDT</span></div>
-  <canvas id="cv1" aria-label="Live-Kerzenchart, 1 Minute"></canvas>
+  <div class="zbar"><div class="seg" id="l1tf" role="group" aria-label="Zeitspanne des Live-Charts"></div><span class="zb"><button type="button" id="l1m" aria-label="Herauszoomen">−</button><button type="button" id="l1p" aria-label="Hineinzoomen">+</button><button type="button" id="l1r" class="off">Jetzt</button></span></div>
+  <canvas id="cv1" aria-label="Live-Kerzenchart"></canvas>
 </section>
     <div class="pgrid">
       <div class="pcol"><section class="hero wait" id="hero" data-o="0" aria-live="polite">
@@ -327,6 +331,7 @@ body[data-tab="coins"] #chips{display:none}
   <div class="page" id="pg-chart">
     <section class="panel" data-o="2" id="chartp">
       <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="upd"></span></div></div>
+      <div class="zbar"><span class="note" id="zinfo">Ziehen = verschieben, Mausrad oder Zwei-Finger-Zoom = zoomen</span><span class="zb"><button type="button" id="zm" aria-label="Herauszoomen">−</button><button type="button" id="zp" aria-label="Hineinzoomen">+</button><button type="button" id="zr" class="off">Auto</button></span></div>
       <canvas id="cv" aria-label="Kerzenchart mit SK-Sequenz 0-A-B-C, Kaufzone, Verkaufszone und Zielzone"></canvas>
       <div class="legend lg-pro"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Long-Einstiegsbereich (Kaufzone)</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Short-Einstiegsbereich (Verkaufszone)</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Zielzone 161,8 - 200 %</span><span>0, A, B = erkannte Punkte, C = erwartete Bewegung</span></div>
       <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Ziel = Gewinnziel</span><span>Stop = Verlustgrenze</span></div>
@@ -441,6 +446,10 @@ const LOCAL=location.protocol==='http:'&&/^(127\.0\.0\.1|localhost)$/.test(locat
 const DIRECT=!LOCAL&&!window.claude;           // eigenständige Handy-App (PWA): Kurse direkt von den Börsen
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const L1TF=[['1m','1 Min'],['5m','5 Min'],['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']];
+const V1={tf:store.get('sk_l1tf','1m'),n:null,off:0,cw:0,len:0,cur:0};if(!L1TF.some(x=>x[0]===V1.tf))V1.tf='1m';
+const ZM={n:null,off:0,cw:0,len:0,cur:0};
+let L1={coin:'',tf:'',candles:[],ts:0,live:false,err:''};
 let board={},sel='BTC',custom=null,sound=store.get('sk_snd',true),log=store.get('sk_log',[]),seen=new Set(store.get('sk_seen',[])),scannedTf={},mcpP=null,busy=false;
 
 /* ---------- Format ---------- */
@@ -452,15 +461,15 @@ function css(n){return getComputedStyle(document.documentElement).getPropertyVal
 /* ---------- Daten ---------- */
 function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function sample(coin,tf){
-  const r=rng([...coin+tf].reduce((a,c)=>a*31+c.charCodeAt(0),7)),vol={'15m':.004,'1h':.008,'4h':.016,'1d':.03,'1w':.06,'1m':.0009}[tf]||.016;
+  const r=rng([...coin+tf].reduce((a,c)=>a*31+c.charCodeAt(0),7)),vol={'5m':.0022,'15m':.004,'1h':.008,'4h':.016,'1d':.03,'1w':.06,'1m':.0009}[tf]||.016;
   const out=[];let p=BASE[coin]||100,ph=r()*6;
   for(let i=0;i<420;i++){const o=p,c=o*(1+(r()-.5)*2*vol+Math.sin(i/38+ph)*vol*.17),h=Math.max(o,c)*(1+r()*vol*.6),l=Math.min(o,c)*(1-r()*vol*.6);out.push({o,h,l,c});p=c}
   return out;
 }
 function getMcp(){if(!mcpP)mcpP=(window.claude&&window.claude.use?window.claude.use('mcp'):Promise.resolve(null)).catch(()=>null);return mcpP}
-const CTF={'1m':'1m','15m':'15m','1h':'1h','4h':'4h','1d':'1D'};
+const CTF={'1m':'1m','5m':'5m','15m':'15m','1h':'1h','4h':'4h','1d':'1D'};
 async function directKlines(coin,tf,limit){
-  const lim=limit||500,ct={'1m':'1m','15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'7D'}[tf];
+  const lim=limit||500,ct={'1m':'1m','5m':'5m','15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'7D'}[tf];
   const get=async url=>{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});if(!r.ok)throw 0;return r.json()};
   for(const [name,host] of [['Binance','api.binance.com'],['Binance Mirror','data-api.binance.vision']]){
     try{const j=await get(`https://${host}/api/v3/klines?symbol=${coin}USDT&interval=${tf}&limit=${lim}`);
@@ -725,7 +734,7 @@ function beep(up){if(!sound)return;try{actx=actx||new (window.AudioContext||wind
 
 /* ---------- Anzeige ---------- */
 function cur(){return custom?{candles:custom.candles,live:false,src:'Eigene CSV',ts:Date.now(),s:custom.s,err:''}:board[sel]}
-function pick(c){sel=c;custom=null;picking=0;hint('');if($('sz').value!=='mh')$('mo').value='';L1={coin:'',candles:[],ts:0,live:false,err:''};draw1m();refresh1m();$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
+function pick(c){ZM.n=null;ZM.off=0;sel=c;custom=null;picking=0;hint('');if($('sz').value!=='mh')$('mo').value='';L1={coin:'',candles:[],ts:0,live:false,err:''};draw1m();refresh1m();$('coin').value=c;renderMain();renderScanner();try{const on=$('chips').querySelector('.chip.on');on&&on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}refreshCoin(c,true).then(()=>{renderMain();renderScanner()});refreshMtf()}
 function sigCls(c){const b=board[c],s=b&&b.s;if(!s)return'';const d=s.dir!=='none'?s.dir:(s.alt&&s.alt.dir!=='none'?s.alt.dir:'');return d==='long'?'sl':d==='short'?'ss':''}
 /* 24-Stunden-Veränderung für die Coin-Auswahl */
 let CH24={};
@@ -978,7 +987,9 @@ function draw(b){
   const s=b.s,cs=b.candles,seq=s.seq,PRO=document.body.classList.contains('pro');
   const f=css('--fg'),mu=css('--muted'),L=css('--long'),S=css('--short'),T=css('--target'),AC=css('--accent'),BG=css('--bg');
   const NARROW=W<600,pad={l:NARROW?44:54,r:NARROW?108:(PRO?124:136),t:42,b:16},iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
-  const n0=cs.length,maxC=NARROW?(PRO?100:80):140,v0=Math.max(s.view0,n0-maxC),view=cs.slice(v0),n=view.length;
+  const n0=cs.length,maxC=NARROW?(PRO?100:80):140;let v0,vend=n0;
+  if(ZM.n){const nn=Math.max(15,Math.min(n0,ZM.n));ZM.off=Math.max(0,Math.min(n0-nn,ZM.off));vend=n0-ZM.off;v0=vend-nn}else{ZM.off=0;v0=Math.max(s.view0,n0-maxC)}
+  const view=cs.slice(v0,vend),n=view.length;
   /* Preisbereich: Kerzen, Zonen, Stop. Ein fernes Ziel wird nicht mitskaliert, sondern am Rand angezeigt. */
   let hi=Math.max(...view.map(c=>c.h)),lo=Math.min(...view.map(c=>c.l));
   const alt=s.alt&&s.alt.seq?s.alt:null;
@@ -993,7 +1004,7 @@ function draw(b){
   }
   const rg=hi-lo||1,pmin=lo-rg*.06,pmax=hi+rg*.06,Y=p=>pad.t+ih*(1-(p-pmin)/(pmax-pmin)),Yc=p=>Y(Math.max(pmin,Math.min(pmax,p)));
   const cwid=iw*(PRO?.74:.8),cw=cwid/n,X=i=>pad.l+cw*(i-v0+.5),bw=Math.max(2,Math.min(14,cw*.68));
-  geo=custom?null:{pad,cw,v0,pmin,pmax,ih};
+  geo=custom?null:{pad,cw,v0,pmin,pmax,ih};ZM.cw=cw;ZM.len=n0;ZM.cur=n;
   g.textBaseline='middle';
   /* Hintergrund und Preisraster */
   const gr=g.createLinearGradient(0,pad.t,0,pad.t+ih);gr.addColorStop(0,'rgba(120,170,255,.05)');gr.addColorStop(1,'rgba(120,170,255,.01)');
@@ -1156,6 +1167,28 @@ function renderMtf(){
   $('mtf').innerHTML=row('Übergeordnete Ebene',mtf.parent,p=>!p.seq?['<span class="tag mid">Keine Sequenz</span>','Auf der größeren Ebene gibt es aktuell keine gültige Sequenz.']:p.seq.d===d?['<span class="tag long">Passt</span>','Die größere Ebene hat eine '+dn(d)+'-Sequenz in dieselbe Richtung.']:['<span class="tag wait">Gegenläufig</span>','Die größere Ebene hat eine '+dn(p.seq.d)+'-Sequenz. Mit der Sequenz handeln ist weniger riskant als gegen sie.'])
    +row('Kleinere Ebene',mtf.child,c=>!c.seq?['<span class="tag mid">Keine Sequenz</span>','Auf der kleineren Ebene gibt es aktuell keine gültige Sequenz.']:c.seq.d!==d?['<span class="tag wait">Gegenläufig</span>','Die kleinere Ebene läuft in die andere Richtung ('+dn(c.seq.d)+').']:c.state==='in'?['<span class="tag long">Bestätigt</span>','Auch die kleinere Ebene steht in ihrer Zone.']:['<span class="tag mid">Wartet</span>','Die kleinere Ebene hat dieselbe Richtung, steht aber noch nicht in ihrer Zone.']);
 }
+
+/* ---------- Zoomen und Verschieben (Mausrad, Ziehen, Zwei-Finger-Zoom, Knöpfe) ---------- */
+function gestures(cv,st,redraw,canPan){
+  const P=new Map();let d0=0,n0=0,lx=0,moved=0;
+  const lim=()=>st.len||0;
+  const zoom=f=>{const cur=st.n||st.cur||60;st.n=Math.max(15,Math.min(Math.max(15,lim()),Math.round(cur*f)));redraw()};
+  cv.addEventListener('wheel',e=>{if(!lim())return;e.preventDefault();zoom(e.deltaY>0?1.15:1/1.15)},{passive:false});
+  cv.addEventListener('pointerdown',e=>{P.set(e.pointerId,e);try{cv.setPointerCapture(e.pointerId)}catch(x){}moved=0;lx=e.clientX;
+    if(P.size===2){const [a,b]=[...P.values()];d0=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);n0=st.n||st.cur||60}});
+  cv.addEventListener('pointermove',e=>{if(!P.has(e.pointerId))return;P.set(e.pointerId,e);
+    if(P.size===2&&d0){const [a,b]=[...P.values()],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(d>10){st.n=Math.max(15,Math.min(Math.max(15,lim()),Math.round(n0*d0/d)));redraw()}return}
+    if(P.size===1&&(!canPan||canPan())&&st.cw>0){const dx=e.clientX-lx;if(Math.abs(dx)>=st.cw*.6||moved){moved=1;const k=Math.round(dx/st.cw);if(k){lx+=k*st.cw;if(!st.n)st.n=st.cur||60;st.off=Math.max(0,st.off+k);cv.classList.add('drag');redraw()}}}});
+  const up=e=>{P.delete(e.pointerId);d0=0;cv.classList.remove('drag')};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  return{zoom};
+}
+const gl=gestures($('cv1'),V1,()=>draw1m()),gm=gestures($('cv'),ZM,()=>draw(cur()),()=>!picking);
+$('l1m').onclick=()=>gl.zoom(1.3);$('l1p').onclick=()=>gl.zoom(1/1.3);$('l1r').onclick=()=>{V1.n=null;V1.off=0;draw1m()};
+$('zm').onclick=()=>gm.zoom(1.3);$('zp').onclick=()=>gm.zoom(1/1.3);$('zr').onclick=()=>{ZM.n=null;ZM.off=0;draw(cur())};
+function renderL1tf(){$('l1tf').innerHTML=L1TF.map(([v,t])=>`<button type="button" data-t="${v}" class="${v===V1.tf?'on':''}" aria-pressed="${v===V1.tf}">${t}</button>`).join('');
+  $('l1tf').querySelectorAll('button').forEach(b=>b.onclick=()=>{V1.tf=b.dataset.t;V1.n=null;V1.off=0;store.set('sk_l1tf',V1.tf);L1={coin:'',tf:'',candles:[],ts:0,live:false,err:''};renderL1tf();draw1m();refresh1m()})}
+renderL1tf();
 /* ---------- Punkte selbst setzen ---------- */
 function hint(t){const h=$('mhint');h.textContent=t||'';h.hidden=!t}
 function mkey(){return sel+'|'+tf()}
@@ -1172,28 +1205,28 @@ $('cv').addEventListener('click',ev=>{
   manualMap[mkey()]={O,A};store.set('sk_manual',manualMap);hint('');analyseCoin(sel);renderMain();renderScanner();
 });
 /* ---------- 1-Minuten-Live-Chart ganz oben ---------- */
-let L1={coin:'',candles:[],ts:0,live:false,err:''};
 async function refresh1m(){
-  if(custom)return;const c=sel;
-  try{const r=await fetchCandles(c,'1m',120);if(sel!==c)return;L1={coin:c,candles:r.candles.slice(-120),ts:Date.now(),live:true,err:''}}
-  catch(e){if(sel!==c)return;if(L1.coin!==c||!L1.live){L1={coin:c,candles:sample(c,'1m').slice(-120),ts:Date.now(),live:false,err:errText(e)}}else L1.err=errText(e)}
+  if(custom)return;const c=sel,t=V1.tf;
+  try{const r=await fetchCandles(c,t,300);if(sel!==c||V1.tf!==t)return;L1={coin:c,tf:t,candles:r.candles.slice(-300),ts:Date.now(),live:true,err:''}}
+  catch(e){if(sel!==c||V1.tf!==t)return;if(L1.coin!==c||L1.tf!==t||!L1.live){L1={coin:c,tf:t,candles:sample(c,t).slice(-300),ts:Date.now(),live:false,err:errText(e)}}else L1.err=errText(e)}
   draw1m();
 }
 function draw1m(){
   const cv=$('cv1'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
-  const nm=custom?'CSV':sel;$('l1sym').textContent=nm+' / USDT · 1 Min';
-  const cs=L1.coin===sel?L1.candles:[];
+  const nm=custom?'CSV':sel;$('l1sym').textContent=nm+' / USDT · '+(L1TF.find(x=>x[0]===V1.tf)||[0,V1.tf])[1];
+  const cs=L1.coin===sel&&L1.tf===V1.tf?L1.candles:[];
   if(!cs.length){$('l1price').textContent='…';$('l1st').textContent='LÄDT';$('l1st').className='pill';return}
-  const NARROW=W<600,view=cs.slice(-(NARROW?60:90)),n=view.length,last=view[n-1].c,first=view[0].o;
+  const NARROW=W<600,nn=Math.max(15,Math.min(cs.length,V1.n||(NARROW?60:90)));V1.off=Math.max(0,Math.min(cs.length-nn,V1.off));
+  const vend=cs.length-V1.off,view=cs.slice(vend-nn,vend),n=view.length,last=cs[cs.length-1].c,first=view[0].o,vlast=view[n-1].c;V1.len=cs.length;V1.cur=n;
   const L=css('--long'),S=css('--short'),AC=css('--accent'),mu=css('--muted'),BG=css('--bg');
-  const chg=(last-first)/first;$('l1price').textContent=fmt(last);$('l1chg').textContent=(chg>=0?'+':'')+pctS(chg,2)+' ('+n+' Min)';$('l1chg').className=chg>=0?'up':'dn';
+  const chg=(vlast-first)/first;$('l1price').textContent=fmt(last);$('l1chg').textContent=(chg>=0?'+':'')+pctS(chg,2)+' ('+n+' Kerzen'+(V1.off?', älter':'')+')';$('l1chg').className=chg>=0?'up':'dn';
   const st=$('l1st');if(L1.live){const age=Math.round((Date.now()-L1.ts)/1000);st.innerHTML='LIVE · '+new Date(L1.ts).toLocaleTimeString('de-DE');st.className='pill live'}else{st.textContent='BEISPIELDATEN'+(L1.err?' · '+L1.err.toUpperCase():'');st.className='pill warn'}
   const pad={l:NARROW?44:54,r:NARROW?84:96,t:8,b:8},iw=W-pad.l-pad.r,ih=H-pad.t-pad.b;
   let hi=Math.max(...view.map(c=>c.h)),lo=Math.min(...view.map(c=>c.l));const rg0=hi-lo||last*.001,ex=rg0*.35;
   const b=board[sel],lv=[];
   if(b&&b.s){[b.s,b.s.alt].forEach(x=>{if(x&&x.seq&&x.lv){const e=x.lv.entry;if(e<hi+ex&&e>lo-ex){lv.push({p:e,c:x.seq.d===1?L:S,t:(x.seq.d===1?'Long':'Short')+' ab'})}}})}
   lv.forEach(l=>{hi=Math.max(hi,l.p);lo=Math.min(lo,l.p)});
-  const rg=hi-lo||1,pmin=lo-rg*.08,pmax=hi+rg*.08,Y=p=>pad.t+ih*(1-(p-pmin)/(pmax-pmin)),cw=iw/n,bw=Math.max(2,Math.min(9,cw*.66)),X=i=>pad.l+cw*(i+.5);
+  const rg=hi-lo||1,pmin=lo-rg*.08,pmax=hi+rg*.08,Y=p=>pad.t+ih*(1-(p-pmin)/(pmax-pmin)),cw=iw/n,bw=Math.max(2,Math.min(9,cw*.66)),X=i=>pad.l+cw*(i+.5);V1.cw=cw;
   g.textBaseline='middle';
   const step=(()=>{const raw=rg/3,m=Math.pow(10,Math.floor(Math.log10(raw))),r=raw/m;return(r<1.5?1:r<3.5?2:r<7.5?5:10)*m})();
   g.font='500 10.5px '+css('--mono');g.textAlign='right';
@@ -1428,7 +1461,7 @@ COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
 (LOCAL||DIRECT?[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
 $('tf').value='4h';renderTfs();
 $('coin').addEventListener('change',()=>pick($('coin').value));
-$('tf').addEventListener('change',()=>{renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
+$('tf').addEventListener('change',()=>{ZM.n=null;ZM.off=0;renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
 ['sw','sm','pp','ps','mc','st'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
 ['acc','rk','mh','dl','hr','mm','lm','lf','mo','sz'].forEach(id=>$(id).addEventListener('input',renderMain));
 $('sz').addEventListener('change',()=>{if($('sz').value==='mh'){if(!$('mo').value&&window.lastPos)$('mo').value=(Math.ceil(window.lastPos.Mrec*100)/100).toFixed(2);if(window.lastPos&&$('lm').value!=='fix')$('lm').value='fix'}renderMain()});
