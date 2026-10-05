@@ -1,0 +1,36 @@
+name: SK Hintergrund-Scanner
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sk-scan
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sk-board-pages
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Browser installieren
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Coins prüfen und Signale melden
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          SK_TFS: ${{ vars.SK_TFS }}
+        run: node scanner/scan.js
+      - name: Status speichern
+        run: |
+          git config user.name "sk-scanner"
+          git config user.email "sk-scanner@users.noreply.github.com"
+          git add scanner/state.json
+          git diff --cached --quiet || (git commit -m "Scanner-Status" && git pull --rebase -q && git push)
