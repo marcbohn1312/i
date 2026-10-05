@@ -705,7 +705,7 @@ function showOverlay(o){
   $('alarm').firstElementChild.className='al-box '+o.cls;$('alarm').hidden=false;$('alk').focus();
   clearInterval(alarmTimer);alarmTimer=setInterval(()=>{beep(o.up);try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch(x){}},4000);
   clearInterval(titleTimer);let on=false;titleTimer=setInterval(()=>{document.title=(on=!on)?'⚠ '+o.title:baseTitle},900);
-  $('alk').onclick=()=>{const c=o.coin;if(alarmQ.length){showOverlay(alarmQ.shift())}else{ackAlarm()}pick(c);setTab('start')};
+  $('alk').onclick=()=>{if(alarmQ.length){showOverlay(alarmQ.shift())}else{ackAlarm()}};
 }
 function ackAlarm(){clearInterval(alarmTimer);clearInterval(titleTimer);alarmTimer=titleTimer=null;document.title=baseTitle;$('alarm').hidden=true;try{navigator.vibrate&&navigator.vibrate(0)}catch(x){}}
 function pushNtfy(o){
