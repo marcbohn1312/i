@@ -21,6 +21,16 @@ fs.mkdirSync(OUT,{recursive:true});
   try{const csv=await get(STOOQ,1),nm={'^SPX':'S&P 500','^NDX':'Nasdaq 100','^DAX':'DAX','^UKX':'FTSE 100','^NKX':'Nikkei 225','^HSI':'Hang Seng'},m=[];
     csv.trim().split(/\r?\n/).slice(1).forEach(l=>{const c=l.split(',');const n=nm[(c[0]||'').toUpperCase()],o=+c[3],cl=+c[6];if(n&&o>0&&cl>0)m.push({n,v:cl,p:(cl/o-1)*100})});
     if(m.length)feed.markets=m}catch(e){console.log('Indizes:',e.message)}
+  /* News: CryptoCompare (englisch) und BTC-ECHO (deutsch, RSS) */
+  try{
+    const items=[];
+    try{const j=await get('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');(j.Data||[]).forEach(x=>items.push({t:x.published_on*1000,title:x.title,body:String(x.body||'').slice(0,700),url:x.url,src:(x.source_info&&x.source_info.name)||x.source,lang:'EN',cats:String(x.categories||'').split('|')}))}catch(e){console.log('CryptoCompare:',e.message)}
+    try{const x=await get('https://www.btc-echo.de/feed/',1),un=t=>String(t||'').replace(/<!\[CDATA\[|\]\]>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#8217;/g,"'").trim();
+      (x.match(/<item>[\s\S]*?<\/item>/g)||[]).slice(0,25).forEach(it=>{const g=t=>{const m=it.match(new RegExp('<'+t+'[^>]*>([\\s\\S]*?)</'+t+'>'));return m?un(m[1]):''};
+        const cats=(it.match(/<category[^>]*>([\s\S]*?)<\/category>/g)||[]).map(c=>un(c).replace(/<[^>]*>/g,'').trim());
+        const t=Date.parse(g('pubDate'));if(t)items.push({t,title:g('title'),body:g('description').replace(/<[^>]*>/g,' ').slice(0,700),url:g('link'),src:'BTC-ECHO',lang:'DE',cats})})}catch(e){console.log('BTC-ECHO:',e.message)}
+    if(items.length){items.sort((a,b)=>b.t-a.t);feed.news=items.slice(0,50);feed.newsTs=Date.now()}else if(old.news){feed.news=old.news;feed.newsTs=old.newsTs||0}
+  }catch(e){console.log('News:',e.message)}
   fs.writeFileSync(path.join(OUT,'feed.json'),JSON.stringify(feed));
   console.log('Kalender:',feed.cal.length,'Termine, Indizes:',feed.markets.length);
 

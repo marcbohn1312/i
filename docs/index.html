@@ -45,6 +45,11 @@ a.btn{text-decoration:none;display:inline-block}
 .mi b{display:block;font:700 15px var(--mono);margin-top:2px}.mi i{font:600 12px var(--mono);font-style:normal}.mi i.u{color:var(--long)}.mi i.d{color:var(--short)}
 .rec{border-left:3px solid var(--accent);padding:2px 0 2px 12px}.rec.h{border-color:var(--short)}.rec.m{border-color:var(--wait)}.rec.l{border-color:var(--long)}
 .rec b.big{font:700 17px var(--display);display:block;margin-bottom:6px}.rec ul{margin:6px 0 0;padding-left:18px}.rec li{margin:3px 0;font:400 13.5px/1.45 var(--body)}
+.nw{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:rgba(129,151,189,.05);overflow:hidden}
+.nw>button{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 12px;cursor:pointer}.nw>button:hover{background:rgba(77,227,255,.07)}
+.nw .nt{font:600 14px/1.35 var(--body);color:var(--fg)}.nw .nm{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:5px;font:500 11.5px var(--mono);color:var(--muted)}
+.nw .nb{padding:2px 12px 12px;font:400 13.5px/1.55 var(--body)}.nw .nb a{color:var(--accent)}
+.nw .ct{padding:1px 7px;border-radius:999px;background:rgba(77,227,255,.12);color:var(--accent);font:600 10.5px var(--mono)}.nw .ct.w{background:rgba(255,203,92,.18);color:var(--wait)}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -116,7 +121,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 @media(max-width:980px){.grid{display:flex;flex-direction:column;align-items:stretch}.grid>.col{display:contents}[data-o="0"]{order:0}[data-o="1"]{order:1}[data-o="2"]{order:2}[data-o="3"]{order:3}[data-o="4"]{order:4}[data-o="5"]{order:5}[data-o="6"]{order:6}[data-o="7"]{order:7}[data-o="8"]{order:8}[data-o="9"]{order:9}[data-o="10"]{order:10}[data-o="11"]{order:11}}
 .col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0;backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-h2{font:700 12px var(--display);letter-spacing:.18em;text-transform:uppercase;margin:0 0 12px;color:var(--muted);display:flex;align-items:center;gap:10px}
+h2{font:700 12px var(--display);letter-spacing:.18em;text-transform:uppercase;margin:0 0 12px;color:var(--muted);display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap}
 h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line-s),transparent)}
 /* Urteil */
 .verdict{position:relative;overflow:hidden;padding:20px 20px 18px}
@@ -326,7 +331,7 @@ body[data-tab="coins"] #chips{display:none}
     <div class="seg" id="mode" role="group" aria-label="Ansicht"><button type="button" data-m="einfach">Einfach</button><button type="button" data-m="pro">Profi</button></div>
   </div>
 </div>
-<nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"><button type="button" role="tab" data-tab="start" aria-controls="pg-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Start</span></button><button type="button" role="tab" data-tab="chart" aria-controls="pg-chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Chart</span></button><button type="button" role="tab" data-tab="order" aria-controls="pg-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Order</span></button><button type="button" role="tab" data-tab="coins" aria-controls="pg-coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Coins</span></button><button type="button" role="tab" data-tab="liq" aria-controls="pg-liq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h9M3 10h15M3 14h7M3 18h12"/></svg><span>Liq</span></button><button type="button" role="tab" data-tab="cal" aria-controls="pg-cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span>Termine</span></button><button type="button" role="tab" data-tab="more" aria-controls="pg-more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button></nav>
+<nav id="tabs" class="tabs" role="tablist" aria-label="Bereiche"><button type="button" role="tab" data-tab="start" aria-controls="pg-start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Start</span></button><button type="button" role="tab" data-tab="chart" aria-controls="pg-chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Chart</span></button><button type="button" role="tab" data-tab="order" aria-controls="pg-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>Order</span></button><button type="button" role="tab" data-tab="coins" aria-controls="pg-coins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Coins</span></button><button type="button" role="tab" data-tab="liq" aria-controls="pg-liq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h9M3 10h15M3 14h7M3 18h12"/></svg><span>Liq</span></button><button type="button" role="tab" data-tab="cal" aria-controls="pg-cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span>Markt</span></button><button type="button" role="tab" data-tab="more" aria-controls="pg-more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Mehr</span></button></nav>
 <div class="pick" id="pickbar">
   <div class="chips" id="chips" role="group" aria-label="Coin wählen"></div>
   <div class="tools"><div class="seg" id="tfs" role="group" aria-label="Zeitebene"></div></div>
@@ -440,6 +445,10 @@ body[data-tab="coins"] #chips{display:none}
       <p class="note" id="calnext" style="color:var(--fg);margin-bottom:8px"></p>
       <div class="calcols" id="calcols"></div>
       <p class="note" id="calnote" style="margin-top:10px"></p></section>
+    <section class="panel" id="newsp"><h2>Krypto-News <span class="pill" id="newssrc" style="margin-left:6px;vertical-align:middle">lädt …</span><button type="button" id="newsrf" class="off" style="margin-left:auto;padding:4px 12px;font-size:11px">Aktualisieren</button></h2>
+      <div class="zbar"><div class="seg" id="newsf" role="group" aria-label="Filter"></div></div>
+      <div id="newsl"></div>
+      <p class="note" id="newsn" style="margin-top:10px"></p></section>
   </div>
   <div class="page" id="pg-more">
     <div id="cfgp" class="cfg-grid">
@@ -1745,11 +1754,51 @@ async function btStart(coins){
   }finally{BT.busy=false;$('btone').disabled=$('btall').disabled=false}
 }
 $('btone').onclick=()=>btStart([sel]);$('btall').onclick=()=>btStart(COINS.slice());
+
+/* ---------- Krypto-News ---------- */
+const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
+const nesc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nstrip=h=>{try{return new DOMParser().parseFromString(String(h||''),'text/html').body.textContent.replace(/\s+/g,' ').trim()}catch(e){return String(h||'').replace(/<[^>]*>/g,' ')}};
+const NKEY=[[/hack|exploit|stolen|theft|angriff|gestohlen|sicherheitsl/i,'Sicherheit'],[/\bETF\b/i,'ETF'],[/\bSEC\b|regulat|ban\b|verbot|gesetz|mica|lawsuit|klage/i,'Regulierung'],[/\bFed\b|interest rate|inflation|zins|CPI|FOMC/i,'Zinsen/Makro']];
+function newsNorm(a,src,lang){
+  return a.map(x=>({t:x.t,title:nstrip(x.title),body:nstrip(x.body).slice(0,700),url:/^https?:\/\//.test(x.url||'')?x.url:'',src:x.src||src,lang:x.lang||lang,cats:(x.cats||[]).map(String).filter(Boolean)})).filter(x=>x.title&&x.t)}
+async function loadNews(){
+  if(NEWS.busy)return;NEWS.busy=true;const all=[],srcs=[];
+  const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(9000):undefined});if(!r.ok)throw 0;return r.json()};
+  if(LOCAL||DIRECT){
+    try{const f=await get(RAW+'feed.json?t='+(Date.now()/3e5|0));if(Array.isArray(f.news)&&f.news.length&&(!f.newsTs||Date.now()-f.newsTs<6*36e5)){all.push(...newsNorm(f.news,'',''));srcs.push('GitHub-Sammler')}}catch(e){}
+    try{const j=await get('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+      if(Array.isArray(j.Data)){all.push(...newsNorm(j.Data.map(x=>({t:x.published_on*1000,title:x.title,body:x.body,url:x.url,src:(x.source_info&&x.source_info.name)||x.source,cats:String(x.categories||'').split('|')})),'','EN'));srcs.push('CryptoCompare')}}catch(e){}
+    if(!all.some(x=>x.lang==='DE')){try{const j=await get('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://www.btc-echo.de/feed/'));
+      if(Array.isArray(j.items)){all.push(...newsNorm(j.items.map(x=>({t:Date.parse(String(x.pubDate).replace(' ','T')+'Z')||Date.parse(x.pubDate),title:x.title,body:x.description||x.content,url:x.link,src:'BTC-ECHO',cats:x.categories||[]})),'BTC-ECHO','DE'));srcs.push('BTC-ECHO')}}catch(e){}}
+  }
+  const seen=new Set(),out=[];all.sort((a,b)=>b.t-a.t).forEach(x=>{const k=x.title.toLowerCase().slice(0,60);if(!seen.has(k)){seen.add(k);out.push(x)}});
+  NEWS.items=out.slice(0,60);NEWS.src=out.length?'Live: '+[...new Set(srcs)].join(', '):(LOCAL||DIRECT?'nicht erreichbar':'nur Windows und Handy-App');NEWS.ts=Date.now();NEWS.busy=false;renderNews();
+}
+function ago(ms){const m=Math.max(0,Math.round((Date.now()-ms)/6e4));return m<60?'vor '+m+' Min':m<1440?'vor '+Math.round(m/60)+' Std':'vor '+Math.round(m/1440)+' Tg'}
+function renderNews(){
+  const el=$('newsl');if(!el)return;
+  const flt=[['all','Alle'],['coin',sel],['de','Deutsch']];
+  $('newsf').innerHTML=flt.map(([v,t])=>`<button type="button" data-f="${v}" class="${NEWS.f===v?'on':''}">${nesc(t)}</button>`).join('');
+  $('newsf').querySelectorAll('button').forEach(b=>b.onclick=()=>{NEWS.f=b.dataset.f;store.set('sk_newsf',NEWS.f);renderNews()});
+  $('newssrc').textContent=NEWS.src||'lädt …';$('newssrc').className='pill '+(NEWS.src.indexOf('Live')===0?'live':'warn');
+  const re=new RegExp('\\b'+sel+'\\b|'+({BTC:'bitcoin',ETH:'ethereum|ether',SOL:'solana',BNB:'binance coin|bnb chain',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche',LINK:'chainlink',DOT:'polkadot',LTC:'litecoin',TON:'toncoin|telegram'}[sel]||sel),'i');
+  let l=NEWS.items;
+  if(NEWS.f==='coin')l=l.filter(x=>x.cats.some(c=>c.toUpperCase()===sel)||re.test(x.title));
+  if(NEWS.f==='de')l=l.filter(x=>x.lang==='DE');
+  el.innerHTML=l.slice(0,25).map((x,i)=>{const id=x.t+'|'+x.title.slice(0,30),open=NEWS.open===id,fl=NKEY.filter(k=>k[0].test(x.title)).map(k=>`<span class="ct w">${k[1]}</span>`).join('');
+    const tags=x.cats.filter(c=>COINS.includes(c.toUpperCase())).slice(0,4).map(c=>`<span class="ct">${nesc(c.toUpperCase())}</span>`).join('');
+    return `<div class="nw"><button type="button" data-id="${nesc(id)}" aria-expanded="${open}"><div class="nt">${nesc(x.title)}</div><div class="nm"><span>${ago(x.t)}</span><span>${nesc(x.src||'')}</span>${x.lang?`<span>${nesc(x.lang)}</span>`:''}${fl}${tags}</div></button>${open?`<div class="nb">${x.body?nesc(x.body)+(x.body.length>=700?' …':''):'Keine Vorschau verfügbar.'}${x.url?`<div style="margin-top:8px"><a href="${nesc(x.url)}" target="_blank" rel="noopener noreferrer">Artikel öffnen</a></div>`:''}</div>`:''}</div>`}).join('')||`<p class="note">${NEWS.src.indexOf('Live')===0?'Keine passenden Meldungen.':(LOCAL||DIRECT?'Die News konnten nicht geladen werden. Prüfe die Internetverbindung.':'News gibt es nur in der Windows-Version und in der Handy-App.')}</p>`;
+  el.querySelectorAll('.nw>button').forEach(b=>b.onclick=()=>{NEWS.open=NEWS.open===b.dataset.id?null:b.dataset.id;renderNews()});
+  $('newsn').textContent='Meldungen kommen von Nachrichtenquellen und sind meist englisch. Sie sind nur zur Information, keine Handelsempfehlung und ändern kein SK-Signal. Gelbe Marken zeigen Schlagworte wie Regulierung, Sicherheit, ETF oder Zinsen.';
+}
+$('newsrf').onclick=()=>{$('newssrc').textContent='lädt …';loadNews()};
+setInterval(()=>{if(TAB==='cal')loadNews()},10*60000);
 let TAB=store.get('sk_tab','start');if(!['start','chart','order','coins','liq','cal','more'].includes(TAB))TAB='start';
 function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='pg-'+t));
   document.querySelectorAll('#tabs [data-tab]').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}});if(t==='liq'){renderLiq();loadLiq();renderLive()}if(t==='cal'){renderCal();renderMk();if(!CAL.ts)loadCal();if(!MK.ts)loadMk()}}
+  window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}});if(t==='liq'){renderLiq();loadLiq();renderLive()}if(t==='cal'){renderCal();renderMk();renderNews();if(!CAL.ts)loadCal();if(!MK.ts)loadMk();if(!NEWS.ts)loadNews()}}
 document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
 (LOCAL||DIRECT?[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
