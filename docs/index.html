@@ -1430,6 +1430,7 @@ async function loadLiq(force){
   LQ.busy=false;if(TAB==='liq')renderLiq();
 }
 /* Echte Liquidationen: Binance (alle Coins) und Bybit live mitgeschnitten, in 5-Minuten-Eimern 24 Std gespeichert */
+const RAW='https://raw.githubusercontent.com/marcbohn1312/i/sk-data/';
 const LE={b:store.get('sk_le',{}),start:store.get('sk_le_start',0),ok:{Binance:0,Bybit:0,OKX:0},hide:store.get('sk_le_hide',false),last:[],big:store.get('sk_le_big',null),scope:'all',dirty:false};
 const LEWIN=[['1H',36e5],['4H',144e5],['12H',432e5],['24H',864e5]];
 function leCoin(sym){const c=String(sym||'').replace(/(USDT|USDC|BUSD|USD)$/,'');return COINS.includes(c)?c:'Andere'}
@@ -1454,6 +1455,14 @@ function leConnect(name,url,onOpen,onMsg,delay){
   ws.onclose=()=>{if(LE.ok[name]===1)LE.ok[name]=0;LE.dirty=true;setTimeout(()=>leConnect(name,url,onOpen,onMsg,Math.min(delay*2,60000)),delay)};
   if(name==='Bybit'||name==='OKX')setInterval(()=>{try{ws.readyState===1&&ws.send(name==='OKX'?'ping':'{"op":"ping"}')}catch(e){}},20000);
 }
+async function leFeed(){
+  try{const r=await fetch(RAW+'liq.json?t='+(Date.now()/3e5|0),{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(9000):undefined});if(!r.ok)return;const j=await r.json();
+    if(!j||!j.b||!j.ts||Date.now()-j.ts>6*36e5)return;
+    const lim=Date.now()-864e5;
+    for(const k in j.b){if(+k.split('|')[0]+3e5<lim)continue;const a=j.b[k],e=LE.b[k]||(LE.b[k]=[0,0]);e[0]=Math.max(e[0],a[0]);e[1]=Math.max(e[1],a[1])}
+    if(j.start&&(!LE.start||j.start<LE.start)){LE.start=j.start;store.set('sk_le_start',LE.start)}
+    LE.feed={ts:j.ts,src:j.src||{}};LE.dirty=true}catch(e){}
+}
 function liqStart(){
   if(!(LOCAL||DIRECT)||!window.WebSocket||LE.started)return;LE.started=1;
   leConnect('Binance','wss://fstream.binance.com/ws/!forceOrder@arr',null,j=>{const o=j&&j.o;if(o&&o.s)leAdd('Binance',o.s,o.S==='SELL',+o.q*+(o.ap||o.p),+(o.ap||o.p))});
@@ -1472,6 +1481,7 @@ function liqStart(){
         (j.data||[]).forEach(x=>(x.details||[]).forEach(d=>{const t=+d.ts;if(t>Date.now()-864e5&&t<(LE.okxLive||Date.now()))leAdd('OKX',c,okxLong(d),okxUsd(x.instId||c+'-USDT-SWAP',+d.sz,+d.bkPx),+d.bkPx,t)}))}catch(e){}}
       if(Object.keys(LE.b).length&&!LE.start){LE.start=Date.now()-864e5}LE.dirty=true}
   });
+  leFeed();setInterval(leFeed,5*60000);
   setInterval(lePersist,30000);addEventListener('pagehide',lePersist);
   setInterval(()=>{if(LE.dirty){LE.dirty=false;renderLive()}},1000);
 }
@@ -1482,12 +1492,13 @@ function renderLive(){
   const el=$('lqlive');if(!el||TAB!=='liq'&&el.dataset.done)return;
   if(!(LOCAL||DIRECT)){el.innerHTML='<p class="note">Echte Liquidationen gibt es nur in der Windows-Version und in der Handy-App.</p>';el.dataset.done=1;return}
   const co=LE.scope==='coin'?sel:null,srcs=['Binance','Bybit','OKX'].map(n=>n+' '+(LE.ok[n]===1?'●':'○')).join(' · ');
+  const fd=LE.feed?' · GitHub-Sammler ● Stand '+hm(LE.feed.ts):'';
   const mins=LE.start?Math.round((Date.now()-LE.start)/6e4):0,since=LE.start?(mins<60?mins+' Min':mins<2880?Math.round(mins/60)+' Std':Math.round(mins/1440)+' Tage'):'';
   const rows=LEWIN.map(([n,ms])=>{const r=leSum(ms,co),part=LE.start&&Date.now()-LE.start<ms;
     return `<div class="lqg"><span class="lqg-n">${n} Rekt${part?'*':''}</span><span class="lqg-t">${leU(r.t)}</span><span class="lqdn">Longs<b>${leU(r.l)}</b></span><span class="lqup">Shorts<b>${leU(r.s)}</b></span></div>`}).join('');
   const big=LE.big&&Date.now()-LE.big.t<864e5?`<p class="note" style="margin-top:8px">Größte Einzelliquidation (24 Std): <b>${LE.big.ex}-${LE.big.coin}</b> mit <b>${leU(LE.big.usd)}</b> (${LE.big.long?'Long':'Short'}).</p>`:'';
   const ev=LE.last.filter(e=>!co||e.coin===co).slice(0,6).map(e=>`<div class="lqrow"><span class="${e.long?'lqdn':'lqup'}">${e.long?'Long':'Short'} ${e.sym} <small>${e.ex}</small></span><span><b>${leU(e.usd)}</b> · ${new Date(e.t).toLocaleTimeString('de-DE')}</span></div>`).join('');
-  el.innerHTML=`<div class="seg" id="lqsc" role="group" aria-label="Auswahl"><button type="button" data-s="all" class="${co?'':'on'}">Alle Coins</button><button type="button" data-s="coin" class="${co?'on':''}">${sel}</button></div>${rows}${big}${ev?'<h2 style="margin-top:14px">Zuletzt</h2>'+ev:'<p class="note" style="margin-top:8px">'+((LE.ok.Binance===1||LE.ok.Bybit===1||LE.ok.OKX===1)?'Verbunden. Es wartet auf die nächste Zwangsschließung …':(LE.ok.Binance===-1&&LE.ok.Bybit===-1&&LE.ok.OKX===-1?'Die Börsen-Meldungen sind hier nicht erreichbar.':'Verbindung wird aufgebaut …'))+'</p>'}<p class="note" style="margin-top:8px">Quellen: ${srcs}${since?' · gesammelt seit '+since:''}. Die Zahlen entstehen live in dieser App: Es zählt nur, was bei geöffneter App ankam${LE.start&&mins<1440?'. * = Zeitraum noch nicht voll':''}. Coinglass addiert noch weitere Börsen, deshalb bleiben seine Summen größer.</p>`;
+  el.innerHTML=`<div class="seg" id="lqsc" role="group" aria-label="Auswahl"><button type="button" data-s="all" class="${co?'':'on'}">Alle Coins</button><button type="button" data-s="coin" class="${co?'on':''}">${sel}</button></div>${rows}${big}${ev?'<h2 style="margin-top:14px">Zuletzt</h2>'+ev:'<p class="note" style="margin-top:8px">'+((LE.ok.Binance===1||LE.ok.Bybit===1||LE.ok.OKX===1)?'Verbunden. Es wartet auf die nächste Zwangsschließung …':(LE.ok.Binance===-1&&LE.ok.Bybit===-1&&LE.ok.OKX===-1?(LE.feed?'Direkte Meldungen sind hier nicht erreichbar, die Zahlen kommen vom GitHub-Sammler.':'Die Börsen-Meldungen sind hier nicht erreichbar.'):'Verbindung wird aufgebaut …'))+'</p>'}<p class="note" style="margin-top:8px">Quellen: ${srcs}${fd}${since?' · gesammelt seit '+since:''}. Die Zahlen entstehen live in dieser App: Es zählt nur, was bei geöffneter App ankam${LE.start&&mins<1440?'. * = Zeitraum noch nicht voll':''}. Coinglass addiert noch weitere Börsen, deshalb bleiben seine Summen größer.</p>`;
   el.querySelectorAll('#lqsc [data-s]').forEach(b=>b.onclick=()=>{LE.scope=b.dataset.s;renderLive()});
 }
 document.querySelectorAll('#lqr [data-r]').forEach(b=>b.onclick=()=>{LQ.r=b.dataset.r;store.set('sk_liqr',LQ.r);LQ.data=null;renderLiq();loadLiq(true)});
@@ -1510,6 +1521,7 @@ async function loadMk(){
       const nm={'^SPX':'S&P 500','^NDX':'Nasdaq 100','^DAX':'DAX','^UKX':'FTSE 100','^NKX':'Nikkei 225','^HSI':'Hang Seng'},ix=[];
       csv.trim().split(/\r?\n/).slice(1).forEach(l=>{const c=l.split(',');const n=nm[(c[0]||'').toUpperCase()],o=+c[3],cl=+c[6];if(n&&o>0&&cl>0)ix.push({n,v:cl.toLocaleString('de-DE',{maximumFractionDigits:1}),p:(cl/o-1)*100,per:'seit Handelsbeginn'})});
       if(ix.length){out.unshift(...ix);idx=true}}catch(e){}
+    if(!idx&&DIRECT){try{const f=await get(RAW+'feed.json?t='+(Date.now()/3e5|0));const ix=(f.markets||[]).map(x=>({n:x.n,v:(+x.v).toLocaleString('de-DE',{maximumFractionDigits:1}),p:x.p,per:'seit Handelsbeginn'}));if(ix.length){out.unshift(...ix);idx=true}}catch(e){}}
   }
   MK.items=out;MK.ts=Date.now();MK.src=out.length?(idx?'Live: Indizes + Binance':'Live: Binance'):'nicht erreichbar';renderMk();
 }
@@ -1614,9 +1626,9 @@ async function loadCal(){
   if(CAL.busy)return;CAL.busy=true;let ev=null,src='';
   const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(9000):undefined});if(!r.ok)throw 0;return r.json()};
   const FF='https://nfs.faireconomy.media/ff_calendar_thisweek.json';
-  const parse=j=>Array.isArray(j)&&j.length>5?j.map(x=>({t:Date.parse(x.date),title:String(x.title||''),cur:String(x.country||''),imp:x.impact,fc:x.forecast||'',pv:x.previous||'',ac:x.actual||''})).filter(x=>x.t&&CREG[x.cur]):null;
+  const parse=j0=>{const j=Array.isArray(j0)?j0:(j0&&j0.cal&&(!j0.calTs||Date.now()-j0.calTs<6*36e5)?j0.cal:null);return Array.isArray(j)&&j.length>5?j.map(x=>({t:Date.parse(x.date),title:String(x.title||''),cur:String(x.country||''),imp:x.impact,fc:x.forecast||'',pv:x.previous||'',ac:x.actual||''})).filter(x=>x.t&&CREG[x.cur]):null};
   /* Reihenfolge: eigenes Programm (Windows), gleiche Seite (feste Kopie), direkt, dann öffentliche Weiterleitungen gegen die Browser-Sperre */
-  const tries=LOCAL?[['Live (Programm)','/api/calendar']]:DIRECT?[['Live (Forex Factory)',FF],['Live (über Weiterleitung 1)','https://api.allorigins.win/raw?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 2)','https://corsproxy.io/?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 3)','https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(FF)]]:[];
+  const tries=LOCAL?[['Live (Programm)','/api/calendar']]:DIRECT?[['Live (GitHub-Sammler)',RAW+'feed.json?t='+(Date.now()/3e5|0)],['Live (Forex Factory)',FF],['Live (über Weiterleitung 1)','https://api.allorigins.win/raw?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 2)','https://corsproxy.io/?url='+encodeURIComponent(FF)],['Live (über Weiterleitung 3)','https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(FF)]]:[];
   for(const [nm,u] of tries){try{const r=parse(await get(u));if(r&&r.length){ev=r;src=nm;break}}catch(e){}}
   if(!ev||!ev.length){ev=calTypical();src='Typische Termine'}
   ev.sort((a,b)=>a.t-b.t);CAL.ev=ev;CAL.src=src;CAL.ts=Date.now();CAL.busy=false;renderCal();calBanner();renderRec();
