@@ -35,6 +35,10 @@ button:hover,.btn:hover{background:rgba(77,227,255,.16)}
 button.off{color:var(--muted);border-color:var(--line)}
 a.btn{text-decoration:none;display:inline-block}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.osc{margin:8px 0 12px}.osc-h{display:flex;align-items:center;gap:10px;font:500 13px var(--body)}.osc-h .val{font-family:var(--mono);margin-left:auto}
+.osc-b{position:relative;height:10px;border-radius:5px;background:rgba(129,151,189,.18);margin-top:6px}
+.osc-b .z{position:absolute;top:0;bottom:0;background:rgba(129,151,189,.22)}
+.osc-b u{position:absolute;top:-4px;width:4px;height:18px;margin-left:-2px;border-radius:2px;background:var(--accent);box-shadow:0 0 8px var(--accent);text-decoration:none}
 /* Liquiditäts-Karte */
 body[data-tab="liq"] #tfs{display:none}
 .lqbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:2px 0 10px}
@@ -314,7 +318,7 @@ body[data-tab="coins"] #chips{display:none}
       <div class="plan" id="plan"></div>
       <dl id="vd"></dl>
     </section></div>
-      <div class="pcol"><section class="panel" id="edgep" hidden></section><section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section></div>
+      <div class="pcol"><section class="panel" id="edgep" hidden></section><section class="panel" id="oscp"></section><section data-o="0" class="panel" id="entp"><h2>Einstiegspunkte Long und Short</h2><div class="ent" id="ent"></div></section></div>
     </div>
   </div>
   <div class="page" id="pg-chart">
@@ -636,7 +640,7 @@ function checkOne(c,quiet,s){
   edgeCheck(c,s,e).catch(()=>null).then(ed=>{if(ed&&ed.n){e.edge=ed;store.set('sk_log',log);renderLog();renderChips()}if(!quiet)alertSignal(e)});
 }
 /* Doppelter Vorteil (Confluence): SK-Signal plus mindestens ein unabhängiger zweiter Faktor in derselben Richtung.
-   Faktor 1: großer Liquidations-Bereich liegt zwischen Einstieg und Gewinnziel (Magnet). Faktor 2: die übergeordnete Zeitebene hat eine Sequenz in dieselbe Richtung.
+   Faktor 1: großer Liquidations-Bereich liegt zwischen Einstieg und Gewinnziel (Magnet). Faktor 2: die übergeordnete Zeitebene hat eine Sequenz in dieselbe Richtung. Faktor 3: RSI oder Stochastik zeigen überkauft/überverkauft in Signalrichtung.
    Das ist eine Zusatzmarkierung. Sie ändert nichts am SK-Signal. */
 async function edgeCheck(c,s,e){
   if(s.state==='counter'||!s.seq)return null;
@@ -649,6 +653,8 @@ async function edgeCheck(c,s,e){
   }catch(x){}
   try{const pt=PARENT[e.tf];if(pt&&(pt!=='1w'||LOCAL||DIRECT)){const r=await fetchCandles(c,pt),ps=analyse(r.candles,c+'|'+pt);
     if(ps&&ps.seq&&ps.seq.d===(L?1:-1))f.push('Übergeordnete Ebene '+pt+' läuft in dieselbe Richtung')}}catch(x){}
+  try{const o=oscOf(c);if(o){const hit=L?(o.rsiZ==='os'||o.stZ==='os'):(o.rsiZ==='ob'||o.stZ==='ob');
+    if(hit)f.push((L?'Überverkauft':'Überkauft')+' (RSI '+Math.round(o.rsi)+', Stochastik '+Math.round(o.st)+') in Signalrichtung')}}catch(x){}
   return f.length?{n:f.length+1,f}:null;
 }
 function edgeFor(c){const e=log.find(x=>x.coin===c&&x.tf===tf()&&x.edge&&(x.status==='offen'||x.status==='BE fällig')&&Date.now()-x.t<864e5);return e||null}
@@ -667,7 +673,7 @@ const AL={mode:store.get('sk_al','alarm'),pw:store.get('sk_pw',1),wl:store.get('
 let alarmTimer=null,titleTimer=null,wake=null;const baseTitle=document.title;
 function alertSignal(e){
   const L=e.dir==='long',ktxt=e.kind&&e.kind!=='Haupt'&&e.kind!=='Test'?' ('+e.kind+')':'';
-  const ed=e.edge&&e.edge.n,edh=ed?(ed>2?'DREIFACHER VORTEIL: ':'DOPPELTER VORTEIL: '):'',edt=ed?'\n★ '+e.edge.f.join('\n★ '):'';
+  const ed=e.edge&&e.edge.n,edh=ed?(ed>3?'VIERFACHER VORTEIL: ':ed>2?'DREIFACHER VORTEIL: ':'DOPPELTER VORTEIL: '):'',edt=ed?'\n★ '+e.edge.f.join('\n★ '):'';
   fireAlarm({cls:e.dir,head:edh+(L?'KAUFEN':'VERKAUFEN')+'-SIGNAL',title:(ed?'★ ':'')+(L?'KAUFEN ':'VERKAUFEN ')+e.coin+' ('+(L?'Long':'Short')+')',
     text:`${e.coin}/USDT · ${e.tf}${ktxt}${edt}\nEinstieg ${fmt(e.entry)}\nVerlustgrenze ${fmt(e.sl)}\nGewinnziel ${fmt(e.tp1)}\nChance zu Risiko ${e.crv.toFixed(1)} zu 1`,coin:e.coin,up:L,strong:true});
 }
@@ -735,6 +741,29 @@ async function load24(){
         if(COINS.includes(c)&&o>0)CH24[c]=(l/o-1)*100});
       renderChips();return}catch(e){}}
 }
+/* Überkauft / überverkauft: RSI (14, Wilder) und Stochastik (14, 3) */
+function oscCalc(cs){
+  if(!cs||cs.length<20)return null;
+  const n=14;let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=cs[i].c-cs[i-1].c;if(d>0)g+=d;else l-=d}
+  g/=n;l/=n;
+  for(let i=n+1;i<cs.length;i++){const d=cs[i].c-cs[i-1].c;g=(g*(n-1)+Math.max(d,0))/n;l=(l*(n-1)+Math.max(-d,0))/n}
+  const rsi=l===0?100:100-100/(1+g/l);
+  const k=[];for(let i=n-1;i<cs.length;i++){let hh=-Infinity,ll=Infinity;for(let j=i-n+1;j<=i;j++){hh=Math.max(hh,cs[j].h);ll=Math.min(ll,cs[j].l)}k.push(hh===ll?50:(cs[i].c-ll)/(hh-ll)*100)}
+  const st=k.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3,k.length);
+  const zone=(rsi>70||st>80)?'ob':(rsi<30||st<20)?'os':'';
+  return{rsi,st,zone,rsiZ:rsi>70?'ob':rsi<30?'os':'',stZ:st>80?'ob':st<20?'os':''};
+}
+const oscOf=c=>{const b=board[c];return b&&b.candles?oscCalc(b.candles):null};
+function oscChip(c){const o=oscOf(c);if(!o)return'';
+  const z=o.rsiZ||o.stZ,nm=o.rsiZ||!o.stZ?'RSI '+Math.round(o.rsi):'Stoch '+Math.round(o.st);
+  return `<span class="ch ${z==='ob'?'d':z==='os'?'u':''}">${nm}${z==='ob'?' überkauft':z==='os'?' überverkauft':''}</span>`}
+function renderOsc(){
+  const el=$('oscp');if(!el)return;const o=oscOf(sel);
+  if(!o){el.innerHTML='<h2>Überkauft oder überverkauft?</h2><p class="note">Zu wenige Kerzen für die Berechnung.</p>';return}
+  const bar=(name,v,lo,hi,z)=>`<div class="osc"><div class="osc-h"><b>${name}</b><span class="val">${v.toFixed(0)}</span><span class="tag ${z==='ob'?'short':z==='os'?'long':'mid'}">${z==='ob'?'überkauft':z==='os'?'überverkauft':'neutral'}</span></div><div class="osc-b"><i class="z" style="left:0;width:${lo}%"></i><i class="z" style="left:${hi}%;width:${100-hi}%"></i><u style="left:${Math.min(100,Math.max(0,v))}%"></u></div></div>`;
+  const head=o.zone==='ob'?'Der Markt ist <b>überkauft</b>: stark gestiegen, eine Korrektur nach unten wird wahrscheinlicher.':o.zone==='os'?'Der Markt ist <b>überverkauft</b>: stark gefallen, eine Erholung nach oben wird wahrscheinlicher.':'Der Markt ist weder überkauft noch überverkauft.';
+  el.innerHTML=`<h2>Überkauft oder überverkauft? <span class="pill" style="margin-left:6px;vertical-align:middle">${sel} · ${tf()}</span></h2><p class="note" style="color:var(--fg);margin-bottom:10px">${head}</p>${bar('RSI (14)',o.rsi,30,70,o.rsiZ)}${bar('Stochastik (14, 3)',o.st,20,80,o.stZ)}<p class="note" style="margin-top:8px">RSI: über 70 überkauft, unter 30 überverkauft. Stochastik: über 80 überkauft, unter 20 überverkauft. Märkte können lange in diesen Zonen bleiben. Allein ist das nur ein schwaches Signal. Es zählt als zusätzlicher Faktor für den doppelten Vorteil.</p>`}
 function chipInfo(c){
   const b=board[c],s=b&&b.s;if(!s||!s.seq)return{t:'–',k:'',p:s?fmt(s.last):'…'};
   const cand=[s,s.alt].filter(x=>x&&x.seq);
@@ -746,7 +775,7 @@ function chipInfo(c){
 }
 function renderChips(){
   const box=$('chips'),x=box.scrollLeft;
-  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}</span><span class="pr">${i.p}</span>${chg(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
+  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}</span><span class="pr">${i.p}</span>${chg(c)}${oscChip(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
   box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>pick(b.dataset.c));box.scrollLeft=x;
 }
 const TFL={'15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'1W'};
@@ -776,7 +805,7 @@ function renderScanner(){renderChips();
 }
 function renderLog(){
   const stTag=st=>st==='Ziel'?'<span class="tag long">Ziel</span>':st&&st.indexOf('Stop')===0?'<span class="tag short">'+st+'</span>':st==='BE fällig'?'<span class="tag wait">BE fällig</span>':'<span class="tag mid">offen</span>';
-  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}${e.edge?` <span class="tag wait" title="${e.edge.f.join(' · ').replace(/"/g,'')}">★ ${e.edge.n>2?'3x':'2x'} Vorteil</span>`:''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
+  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}${e.edge?` <span class="tag wait" title="${e.edge.f.join(' · ').replace(/"/g,'')}">★ ${e.edge.n}x Vorteil</span>`:''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
   document.querySelectorAll('#log tr[data-c]').forEach(tr=>tr.onclick=()=>{pick(tr.dataset.c);setTab('start')});
   const w=log.filter(e=>e.status==='Ziel').length,l=log.filter(e=>e.status&&e.status.indexOf('Stop')===0).length;
   $('lgs').textContent=w+l?`Auswertung: ${w} Treffer, ${l} Stopps (Quote ${Math.round(100*w/(w+l))} %). Stopps sind Fälle für die Fehleranalyse.`:'Der Status zeigt, ob ein Signal sein Ziel erreicht hat oder ausgestoppt wurde.';
@@ -1066,8 +1095,8 @@ function draw(b){
 
 function renderEdge(){const ed=edgeFor(sel),el=$('edgep');if(!el)return;
   if(!ed){el.hidden=true;return}
-  el.hidden=false;el.innerHTML=`<h2>★ ${ed.edge.n>2?'Dreifacher':'Doppelter'} Vorteil bei ${ed.coin} (${ed.dir==='long'?'Long':'Short'})</h2><p class="note" style="color:var(--fg)">SK-Signal und mindestens ein unabhängiger zweiter Faktor in dieselbe Richtung:</p><div class="lqrow"><span>SK-Signal</span><b>${ed.dir==='long'?'Kaufen':'Verkaufen'}</b></div>${ed.edge.f.map(x=>`<div class="lqrow"><span>★ ${x}</span></div>`).join('')}<p class="note" style="margin-top:8px">Das erhöht die Wahrscheinlichkeit, ist aber keine Garantie. Das SK-Signal selbst bleibt unverändert.</p>`}
-function renderEntries(s){renderEdge();
+  el.hidden=false;el.innerHTML=`<h2>★ ${ed.edge.n>3?'Vierfacher':ed.edge.n>2?'Dreifacher':'Doppelter'} Vorteil bei ${ed.coin} (${ed.dir==='long'?'Long':'Short'})</h2><p class="note" style="color:var(--fg)">SK-Signal und mindestens ein unabhängiger zweiter Faktor in dieselbe Richtung:</p><div class="lqrow"><span>SK-Signal</span><b>${ed.dir==='long'?'Kaufen':'Verkaufen'}</b></div>${ed.edge.f.map(x=>`<div class="lqrow"><span>★ ${x}</span></div>`).join('')}<p class="note" style="margin-top:8px">Das erhöht die Wahrscheinlichkeit, ist aber keine Garantie. Das SK-Signal selbst bleibt unverändert.</p>`}
+function renderEntries(s){renderEdge();renderOsc();
   const by={};[s,s.alt].forEach(x=>{if(x&&x.seq)by[x.seq.d]=x});
   const card=d=>{
     const x=by[d],long=d===1,cls=long?'long':'short',name=long?'Kaufen (Long)':'Verkaufen (Short)';
