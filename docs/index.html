@@ -56,6 +56,13 @@ a.btn{text-decoration:none;display:inline-block}
 .jt{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:10px 12px;background:rgba(129,151,189,.05)}
 .jt .jh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font:600 13.5px var(--body)}.jt .jm{font:500 12px var(--mono);color:var(--muted);margin-top:4px}.jt .jb{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.jt .jb button{padding:4px 10px;font-size:11px}
 @media(max-width:700px){.jform{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.seqbar{padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.sqb{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font:700 15px var(--display);letter-spacing:.1em;border:1px solid}
+.sqb.long{color:var(--long);border-color:rgba(34,240,168,.55);background:var(--long-bg)}.sqb.short{color:var(--short);border-color:rgba(255,75,134,.55);background:var(--short-bg)}.sqb.none{color:var(--muted);border-color:var(--line);background:rgba(129,151,189,.08)}
+.sqt{font:400 13.5px/1.45 var(--body);flex:1 1 260px;min-width:0}.sqt b{color:var(--fg)}
+.sqm{display:flex;flex-wrap:wrap;gap:6px;width:100%}.sqm span{font:600 11.5px var(--mono);padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.sqm span.long{color:var(--long)}.sqm span.short{color:var(--short)}
+u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--long)}u.sq.short{color:var(--short)}.chip.on u.sq{color:#031018}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -346,6 +353,7 @@ body[data-tab="coins"] #chips{display:none}
 <main>
   <div class="page" id="pg-start">
     <div class="panel lockbn" id="lockbn" hidden></div>
+    <div class="panel seqbar" id="seqbar" aria-live="polite"></div>
     <div class="panel calbn" id="calbn" hidden role="button" tabindex="0"></div>
     <section class="panel live1" id="live1" aria-label="Live-Chart">
   <div class="l1-head"><div class="l1-t"><span class="dot"></span><span class="l1-sym" id="l1sym">BTC / USDT · 1 Min</span></div><div class="l1-p"><b id="l1price">…</b><span id="l1chg"></span></div><span class="pill" id="l1st">LÄDT</span></div>
@@ -372,7 +380,7 @@ body[data-tab="coins"] #chips{display:none}
   </div>
   <div class="page" id="pg-chart">
     <section class="panel" data-o="2" id="chartp">
-      <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="upd"></span></div></div>
+      <div class="chart-head"><div class="price" id="cprice"></div><div class="status"><span class="pill warn" id="mhint" hidden></span><button id="mpick" type="button">Punkte selbst setzen</button><button id="mauto" type="button" class="off" hidden>Automatik</button><span class="pill" id="seqpill" hidden></span><span class="pill" id="upd"></span></div></div>
       <div class="zbar"><span class="note" id="zinfo">Ziehen = verschieben, Mausrad oder Zwei-Finger-Zoom = zoomen</span><span class="zb"><button type="button" id="zm" aria-label="Herauszoomen">−</button><button type="button" id="zp" aria-label="Hineinzoomen">+</button><button type="button" id="zr" class="off">Auto</button></span></div>
       <canvas id="cv" aria-label="Kerzenchart mit SK-Sequenz 0-A-B-C, Kaufzone, Verkaufszone und Zielzone"></canvas>
       <div class="legend lg-pro"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Long-Einstiegsbereich (Kaufzone)</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Short-Einstiegsbereich (Verkaufszone)</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Zielzone 161,8 - 200 %</span><span>0, A, B = erkannte Punkte, C = erwartete Bewegung</span></div>
@@ -705,7 +713,7 @@ async function refreshCoin(c,quiet){
   const t=tf();let b=board[c];
   try{const r=await fetchCandles(c,t);if(tf()!==t)return;b=board[c]={candles:r.candles,live:true,src:r.src,ts:Date.now(),err:''}}
   catch(e){if(tf()!==t)return;if(!b||!b.live)b=board[c]={candles:sample(c,t),live:false,src:'Beispieldaten',ts:Date.now(),err:errText(e)};else b.err=errText(e)}
-  analyseCoin(c);checkSignal(c,quiet);updateOutcomes(c);
+  analyseCoin(c);checkSignal(c,quiet);updateOutcomes(c);try{seqWatch(c,quiet)}catch(e){}
 }
 async function scan(){
   if(busy)return;busy=true;const t=tf(),quiet=!scannedTf[t];
@@ -872,7 +880,7 @@ function chipInfo(c){
 }
 function renderChips(){
   const box=$('chips'),x=box.scrollLeft;
-  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}</span><span class="pr">${i.p}</span>${chg(c)}${oscChip(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
+  box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}${(()=>{const d=sqOf(c);return d?`<u class="sq ${SQ[d][2]}" title="${SQ[d][0]}">${SQ[d][1]}</u>`:''})()}</span><span class="pr">${i.p}</span>${chg(c)}${oscChip(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
   box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>pick(b.dataset.c));box.scrollLeft=x;
 }
 const TFL={'15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'1W'};
@@ -886,7 +894,7 @@ function renderScanner(){renderChips();
   $('scan').innerHTML=rows.map(({c,b})=>{
     if(!b||!b.s)return `<tr class="click" data-c="${c}"><td>${c}</td><td>…</td><td></td><td></td><td></td></tr>`;
     const s=b.s;let mu='–',st='<span class="tag mid">Keine Sequenz</span>',ds='';
-    if(s.seq){mu=s.seq.d===1?'Long':'Short';
+    if(s.seq){mu=s.seq.d===1?'▲ bullisch':'▼ bärisch';
       if(s.dir!=='none')st=`<span class="tag ${s.dir} sig">${s.dir==='long'?'Long':'Short'} ${s.state==='counter'?'Gegentrade':'Signal'}</span>`;
       else if(s.state==='counter')st='<span class="tag target">Zielgebiet</span>';
       else if(s.state==='wait'){st='<span class="tag wait">Warten</span>';ds=pctS(s.dist,1)}
@@ -954,7 +962,7 @@ function renderHero(s,b,c){
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
   set('wait','no','Zu spät','Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
 }
-function renderMain(){try{$('btcoin').textContent=sel}catch(e){}
+function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar()}catch(e){}
 
   $('swv').textContent=$('sw').value;
   const b=cur();if(!b||!b.s){$('vm').textContent='LÄDT';return}
@@ -1239,7 +1247,7 @@ async function refreshMtf(){
     if(!LOCAL&&!DIRECT&&tt==='1w'){out[role]={tf:tt,na:'Wochen-Kerzen sind hier nicht verfügbar'};continue}
     try{const r=await fetchCandles(c,tt);out[role]={tf:tt,s:analyse(r.candles,c+'|'+tt)}}catch(e){out[role]={tf:tt,na:errText(e)}}
   }
-  if(sel===c&&tf()===t&&!custom){mtf=out;renderMtf()}
+  if(sel===c&&tf()===t&&!custom){mtf=out;renderMtf();renderSeqBar()}
 }
 function renderMtf(){
   const b=cur(),s=b&&b.s;if(!s||!s.seq){$('mtf').innerHTML='<p class="note">Ohne Sequenz gibt es keinen Check.</p>';return}
@@ -1890,6 +1898,41 @@ $('jexp').onclick=async()=>{
 ['acc','dl','hr','lsr','lk'].forEach(id=>$(id).addEventListener('input',()=>{$('lsrv').textContent=$('lsr').value;renderLock()}));
 $('lsrv').textContent=$('lsr').value;
 setInterval(()=>{jAuto();renderLock()},30000);
+
+/* ---------- Sequenz-Richtung: bullisch oder bärisch ---------- */
+const SQ={1:['BULLISCH','▲','long','Aufwärts-Sequenz (0 unten, A oben, Long-Einstieg im Rücklauf)'],'-1':['BÄRISCH','▼','short','Abwärts-Sequenz (0 oben, A unten, Short-Einstieg im Rücklauf)']};
+function sqPhase(s){
+  if(s.state==='counter')return 'Zielgebiet erreicht, Gegentrade möglich';
+  if(s.state==='unconf')return 'A ist noch unbestätigt (Rücklauf unter 38,2 %)';
+  if(s.state==='wait')return 'Rücklauf läuft, bis zur Einstiegszone noch '+pctS(s.dist,1);
+  if(s.state==='in')return s.dir!=='none'?'Kurs in der Einstiegszone, Signal aktiv':s.gate==='conf'?'Kurs in der Einstiegszone, Struktur noch zu schwach':s.gate==='against'?'Kurs in der Einstiegszone, aber gegen die stärkere Sequenz':'Kurs in der Einstiegszone, CRV noch zu klein';
+  return s.broken?'Korrektur lief schon durch die Zone, Setup ungültig':'Kurs über die Zone hinaus, zu spät';
+}
+function sqOf(c,t){const b=board[c];return b&&b.s&&b.s.seq?b.s.seq.d:0}
+function renderSeqBar(){
+  const el=$('seqbar');if(!el)return;const b=cur(),s=b&&b.s;
+  if(!s){el.innerHTML='<span class="sqb none">…</span><span class="sqt">Sequenz wird geprüft …</span>';return}
+  const d=s.seq?s.seq.d:0,v=SQ[d],pill=$('seqpill');
+  const alt=s.alt&&s.alt.seq?s.alt:null,nm=custom?custom.name:sel;
+  let txt;
+  if(!s.seq)txt=`<b>${nm} ${tf()}:</b> Keine gültige Sequenz. Es gibt aktuell weder eine bullische noch eine bärische SK-Sequenz, also auch keinen Einstieg.`;
+  else txt=`<b>${nm} ${tf()}:</b> ${v[3]}. 0 → A: ${fmt(s.seq.O.p)} → ${fmt(s.seq.A.p)}. ${sqPhase(s)}.`+(alt?` Daneben läuft eine kleinere <b>${SQ[alt.seq.d][0].toLowerCase()}</b> Gegen-Sequenz.`:'');
+  let m='';
+  if(!custom){
+    const one=(lab,o)=>o&&o.tf&&o.s?`<span class="${o.s.seq?SQ[o.s.seq.d][2]:''}">${lab} ${o.tf}: ${o.s.seq?SQ[o.s.seq.d][1]+' '+SQ[o.s.seq.d][0].toLowerCase():'keine Sequenz'}</span>`:'';
+    m+=one('Größer',mtf.parent)+one('Kleiner',mtf.child);
+    let bu=0,be=0,no=0;COINS.forEach(c=>{const x=sqOf(c);x===1?bu++:x===-1?be++:no++});
+    m+=`<span>Alle 12 Coins ${tf()}: ${bu}× ▲ · ${be}× ▼ · ${no}× ohne</span>`}
+  el.innerHTML=`<span class="sqb ${v?v[2]:'none'}">${v?v[1]+' '+v[0]:'KEINE SEQUENZ'}</span><span class="sqt">${txt}</span>${m?`<div class="sqm">${m}</div>`:''}`;
+  if(pill){pill.hidden=false;pill.textContent=v?v[1]+' '+v[0]+'E SEQUENZ':'KEINE SEQUENZ';pill.className='pill '+(v?(d===1?'live':'warn'):'')}
+}
+function seqWatch(c,quiet){
+  const d=sqOf(c),m=store.get('sk_seqd',{}),k=c+'|'+tf();
+  if(m[k]!==undefined&&m[k]!==d&&!quiet){
+    const a=m[k]?SQ[m[k]][0].toLowerCase():'ohne Sequenz',n=d?SQ[d][0].toLowerCase():'ohne Sequenz';
+    const b=document.createElement('div');b.className='toast';b.innerHTML='<b>Sequenzwechsel '+nesc(c)+' '+nesc(tf())+'</b><div>von '+a+' zu <b>'+n+'</b></div>';b.onclick=()=>{b.remove();pick(c);setTab('start')};$('toasts').appendChild(b);setTimeout(()=>b.remove(),15000)}
+  m[k]=d;store.set('sk_seqd',m);
+}
 /* ---------- Krypto-News ---------- */
 const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
 const nesc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
