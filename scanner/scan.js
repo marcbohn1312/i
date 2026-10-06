@@ -29,6 +29,7 @@ async function ntfy(title,body,prio,tags){
       for(const c of COINS){
         try{
           const r=await fetchCandles(c,tf);
+          board[c]={candles:r.candles,live:true,src:r.src,ts:Date.now(),err:''};
           const s=analyse(r.candles,c+'|'+tf);
           for(const x of [s,s&&s.alt]){
             if(!x||!x.seq||x.dir==='none')continue;
@@ -52,7 +53,7 @@ async function ntfy(title,body,prio,tags){
     st.seen.push(s.key);
     if(first)continue;                     /* erster Lauf: nur merken, nicht alle alten Signale melden */
     const L=s.e.dir==='long',ed=s.ed&&s.ed.n;
-    const title=(ed?'★ '+(ed>3?'Vierfacher':ed>2?'Dreifacher':'Doppelter')+' Vorteil: ':'')+(L?'KAUFEN ':'VERKAUFEN ')+s.e.coin+' ('+s.e.tf+')';
+    const title=(ed?'★ '+(ed>4?'Fünffacher':ed>3?'Vierfacher':ed>2?'Dreifacher':'Doppelter')+' Vorteil: ':'')+(L?'KAUFEN ':'VERKAUFEN ')+s.e.coin+' ('+s.e.tf+')';
     const body=`${s.e.coin}/USDT ${s.e.tf} · ${s.e.kind}\nEinstieg ${s.fmt.entry}\nVerlustgrenze ${s.fmt.sl}\nGewinnziel ${s.fmt.tp1}\nChance zu Risiko ${(+s.e.crv).toFixed(1)} zu 1`+(ed?'\n★ '+s.ed.f.join('\n★ '):'');
     await ntfy(title,body,'urgent',L?'chart_with_upwards_trend':'chart_with_downwards_trend');sent++;
   }

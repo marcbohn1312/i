@@ -63,6 +63,8 @@ a.btn{text-decoration:none;display:inline-block}
 .sqm{display:flex;flex-wrap:wrap;gap:6px;width:100%}.sqm span{font:600 11.5px var(--mono);padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
 .sqm span.long{color:var(--long)}.sqm span.short{color:var(--short)}
 u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--long)}u.sq.short{color:var(--short)}.chip.on u.sq{color:#031018}
+#pg-chart>.pgrid{order:3}
+.poc-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font:500 13px var(--body)}.poc-row:last-of-type{border:0}.poc-row b{font-family:var(--mono)}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -387,7 +389,8 @@ body[data-tab="coins"] #chips{display:none}
       <div class="legend lg-simple"><span><i style="background:var(--long-bg);border-color:var(--long)"></i>Kaufzone: hier kaufen</span><span><i style="background:var(--short-bg);border-color:var(--short)"></i>Verkaufszone: hier verkaufen</span><span><i style="background:var(--target-bg);border-color:var(--target)"></i>Gewinnziel</span><span>Ziel = Gewinnziel</span><span>Stop = Verlustgrenze</span></div>
     </section>
     <div class="pgrid">
-      <div class="pcol"><section data-o="3" class="panel" id="zonesp"><h2>Einstiegsbereiche</h2><div id="zones" class="rlist"></div></section>
+      <div class="pcol"><section class="panel" id="pocp" data-o="4"></section>
+      <section data-o="3" class="panel" id="zonesp"><h2>Einstiegsbereiche</h2><div id="zones" class="rlist"></div></section>
         <section data-o="5" class="panel" id="mtfp"><h2>Zeitebenen-Check</h2><div id="mtf" class="rlist"></div><p class="note" style="margin-top:8px">Tradebook: von der übergeordneten Ebene zur kleineren Ebene analysieren und dort bestätigen. Der Check ist eine Anzeige und sperrt kein Signal.</p></section></div>
       <div class="pcol"><section data-o="8" class="panel" id="patp"><h2>SK-Muster</h2><div class="pat" id="pat"></div>
       <p class="note" style="margin-top:8px">Vorgegebenes SK-Muster: Strecke 0-A, Korrektur nach B in die Zone 0,5 bis 0,667 (A gilt ab dem 0,382er Level als bestätigt), danach Bewegung C in die Zielzone 161,8 bis 200 % der trendbasierten Extension ab B.</p></section>
@@ -564,10 +567,10 @@ async function directKlines(coin,tf,limit){
   const get=async url=>{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});if(!r.ok)throw 0;return r.json()};
   for(const [name,host] of [['Binance','api.binance.com'],['Binance Mirror','data-api.binance.vision']]){
     try{const j=await get(`https://${host}/api/v3/klines?symbol=${coin}USDT&interval=${tf}&limit=${lim}`);
-      if(Array.isArray(j)&&j.length>=30)return{candles:j.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4]})),src:name}}catch(e){}}
+      if(Array.isArray(j)&&j.length>=30)return{candles:j.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]})),src:name}}catch(e){}}
   try{const j=await get(`https://api.crypto.com/exchange/v1/public/get-candlestick?instrument_name=${coin}_USDT&timeframe=${ct}&count=300`);
     const d=j&&j.result&&j.result.data;
-    if(Array.isArray(d)&&d.length>=30)return{candles:d.map(k=>({t:+k.t,o:+k.o,h:+k.h,l:+k.l,c:+k.c})).sort((a,b)=>a.t-b.t),src:'Crypto.com'}}catch(e){}
+    if(Array.isArray(d)&&d.length>=30)return{candles:d.map(k=>({t:+k.t,o:+k.o,h:+k.h,l:+k.l,c:+k.c,v:+k.v})).sort((a,b)=>a.t-b.t),src:'Crypto.com'}}catch(e){}
   throw{code:'net'};
 }
 async function fetchCandles(coin,tf,limit){
@@ -581,7 +584,7 @@ async function fetchCandles(coin,tf,limit){
   if(!mcp)throw{code:'no_mcp'};
   const res=await mcp.callTool('Crypto.com','get_candlestick',{instrument_name:coin+'_USDT',timeframe:CTF[tf]},{cache:{staleTime:tf==='1m'?4000:20000}});
   const rows=res.payload&&res.payload.data;if(!Array.isArray(rows)||rows.length<30)throw{code:'tool_error'};
-  return{candles:rows.slice().reverse().map(k=>({t:Date.parse(k.timestamp),o:+k.open,h:+k.high,l:+k.low,c:+k.close})),src:'Crypto.com'};
+  return{candles:rows.slice().reverse().map(k=>({t:Date.parse(k.timestamp),o:+k.open,h:+k.high,l:+k.low,c:+k.close,v:+k.volume})),src:'Crypto.com'};
 }
 const ERR={net:'Kursserver nicht erreichbar',no_mcp:'Live-Zugriff nicht verfügbar',not_in_manifest:'Live-Zugriff nicht erlaubt',server_not_connected:'Crypto.com nicht verbunden',needs_reauth:'Crypto.com neu verbinden',tool_error:'Kein Live-Kurs'};
 function errText(e){const c=e&&e.code;return c&&c.indexOf('http_')===0?'Kursserver nicht erreichbar':ERR[c]||'Live-Fehler'}
@@ -759,6 +762,8 @@ async function edgeCheck(c,s,e){
     if(ps&&ps.seq&&ps.seq.d===(L?1:-1))f.push('Übergeordnete Ebene '+pt+' läuft in dieselbe Richtung')}}catch(x){}
   try{const o=oscOf(c);if(o){const hit=L?(o.rsiZ==='os'||o.stZ==='os'):(o.rsiZ==='ob'||o.stZ==='ob');
     if(hit)f.push((L?'Überverkauft':'Überkauft')+' (RSI '+Math.round(o.rsi)+', Stochastik '+Math.round(o.st)+') in Signalrichtung')}}catch(x){}
+  try{const b=board[c],cs2=b&&b.candles;if(cs2&&s.seq&&s.lvl){const P=vpCalc(cs2,s.seq.O.i,cs2.length,48);
+    if(P){const a=s.lvl(.5),z=s.lvl(.667),lo=Math.min(a,z),hi=Math.max(a,z),R=s.seq.R*.03;if(P.poc>=lo-R&&P.poc<=hi+R)f.push('Point of Control bei '+fmt(P.poc)+' in der Einstiegszone')}}}catch(x){}
   return f.length?{n:f.length+1,f}:null;
 }
 function edgeFor(c){const e=log.find(x=>x.coin===c&&x.tf===tf()&&x.edge&&(x.status==='offen'||x.status==='BE fällig')&&Date.now()-x.t<864e5);return e||null}
@@ -777,7 +782,7 @@ const AL={mode:store.get('sk_al','alarm'),pw:store.get('sk_pw',1),wl:store.get('
 let alarmTimer=null,titleTimer=null,wake=null;const baseTitle=document.title;
 function alertSignal(e){
   const L=e.dir==='long',ktxt=e.kind&&e.kind!=='Haupt'&&e.kind!=='Test'?' ('+e.kind+')':'';
-  const ed=e.edge&&e.edge.n,edh=ed?(ed>3?'VIERFACHER VORTEIL: ':ed>2?'DREIFACHER VORTEIL: ':'DOPPELTER VORTEIL: '):'',edt=ed?'\n★ '+e.edge.f.join('\n★ '):'';
+  const ed=e.edge&&e.edge.n,edh=ed?(ed>4?'FÜNFFACHER VORTEIL: ':ed>3?'VIERFACHER VORTEIL: ':ed>2?'DREIFACHER VORTEIL: ':'DOPPELTER VORTEIL: '):'',edt=ed?'\n★ '+e.edge.f.join('\n★ '):'';
   fireAlarm({cls:e.dir,head:edh+(L?'KAUFEN':'VERKAUFEN')+'-SIGNAL',title:(ed?'★ ':'')+(L?'KAUFEN ':'VERKAUFEN ')+e.coin+' ('+(L?'Long':'Short')+')',
     text:`${e.coin}/USDT · ${e.tf}${ktxt}${edt}\nEinstieg ${fmt(e.entry)}\nVerlustgrenze ${fmt(e.sl)}\nGewinnziel ${fmt(e.tp1)}\nChance zu Risiko ${e.crv.toFixed(1)} zu 1`,coin:e.coin,up:L,strong:true});
 }
@@ -1140,6 +1145,12 @@ function draw(b){
       if(s.counter)lab('ZIELGEBIET (ALT)',T,(Y(s.counter.t1)+Y(s.counter.t2))/2,'600 12px '+css('--display'));
     }
   }
+  /* Volumenprofil und Point of Control */
+  VPR=null;try{const [a,b]=vpRange(cs,s,v0,vend);VPR=vpCalc(cs,a,b,48)}catch(e){}
+  if(VPR){const P=VPR;g.save();g.beginPath();g.rect(pad.l,pad.t,iw,ih);g.clip();
+    for(let k=0;k<P.nb;k++){const lo=P.lo+k*P.st,hi=lo+P.st,y1=Y(hi),y2=Y(lo),inVA=hi>P.val+1e-9&&lo<P.vah-1e-9;g.fillStyle=inVA?'rgba(165,149,255,.30)':'rgba(129,151,189,.16)';const w=iw*.17*P.vol[k]/P.max;g.fillRect(pad.l,y1+.5,w,Math.max(1,y2-y1-1))}
+    [[P.vah,'rgba(165,149,255,.55)',[4,4],1],[P.val,'rgba(165,149,255,.55)',[4,4],1],[P.poc,'#ffcb5c',[],1.6]].forEach(([p,c,d,w])=>{const y=Y(p);g.strokeStyle=c;g.lineWidth=w;g.setLineDash(d);g.beginPath();g.moveTo(pad.l,y);g.lineTo(pad.l+iw,y);g.stroke()});g.setLineDash([]);g.restore()}
+  renderPoc(s,cs,cs[cs.length-1].c);
   /* Kerzen */
   view.forEach((c,i)=>{const x=X(v0+i),up=c.c>=c.o,col=up?L:S;
     g.strokeStyle=col;g.fillStyle=col;g.lineWidth=Math.max(1.2,Math.min(2,bw/4));
@@ -1147,6 +1158,7 @@ function draw(b){
     const y1=Y(Math.max(c.o,c.c)),y2=Y(Math.min(c.o,c.c)),h=Math.max(1.5,y2-y1);
     g.globalAlpha=up?.9:1;g.fillRect(x-bw/2,y1,bw,h);g.globalAlpha=1});
   const tags=[];                                   // Preis-Etiketten rechts
+  if(VPR&&VPR.poc>=pmin&&VPR.poc<=pmax)tags.push({y:Y(VPR.poc),c:'#ffcb5c',text:'POC '+fmt(VPR.poc),dark:false});
   if(seq){
     const long=seq.d===1,pO=seq.O,pA=seq.A,pB=seq.B;
     /* Muster 0-A-B */
@@ -1203,7 +1215,7 @@ function draw(b){
 
 function renderEdge(){const ed=edgeFor(sel),el=$('edgep');if(!el)return;
   if(!ed){el.hidden=true;return}
-  el.hidden=false;el.innerHTML=`<h2>★ ${ed.edge.n>3?'Vierfacher':ed.edge.n>2?'Dreifacher':'Doppelter'} Vorteil bei ${ed.coin} (${ed.dir==='long'?'Long':'Short'})</h2><p class="note" style="color:var(--fg)">SK-Signal und mindestens ein unabhängiger zweiter Faktor in dieselbe Richtung:</p><div class="lqrow"><span>SK-Signal</span><b>${ed.dir==='long'?'Kaufen':'Verkaufen'}</b></div>${ed.edge.f.map(x=>`<div class="lqrow"><span>★ ${x}</span></div>`).join('')}<p class="note" style="margin-top:8px">Das erhöht die Wahrscheinlichkeit, ist aber keine Garantie. Das SK-Signal selbst bleibt unverändert.</p>`}
+  el.hidden=false;el.innerHTML=`<h2>★ ${ed.edge.n>4?'Fünffacher':ed.edge.n>3?'Vierfacher':ed.edge.n>2?'Dreifacher':'Doppelter'} Vorteil bei ${ed.coin} (${ed.dir==='long'?'Long':'Short'})</h2><p class="note" style="color:var(--fg)">SK-Signal und mindestens ein unabhängiger zweiter Faktor in dieselbe Richtung:</p><div class="lqrow"><span>SK-Signal</span><b>${ed.dir==='long'?'Kaufen':'Verkaufen'}</b></div>${ed.edge.f.map(x=>`<div class="lqrow"><span>★ ${x}</span></div>`).join('')}<p class="note" style="margin-top:8px">Das erhöht die Wahrscheinlichkeit, ist aber keine Garantie. Das SK-Signal selbst bleibt unverändert.</p>`}
 function renderEntries(s){renderEdge();renderOsc();
   const by={};[s,s.alt].forEach(x=>{if(x&&x.seq)by[x.seq.d]=x});
   const card=d=>{
@@ -1932,6 +1944,43 @@ function seqWatch(c,quiet){
     const a=m[k]?SQ[m[k]][0].toLowerCase():'ohne Sequenz',n=d?SQ[d][0].toLowerCase():'ohne Sequenz';
     const b=document.createElement('div');b.className='toast';b.innerHTML='<b>Sequenzwechsel '+nesc(c)+' '+nesc(tf())+'</b><div>von '+a+' zu <b>'+n+'</b></div>';b.onclick=()=>{b.remove();pick(c);setTab('start')};$('toasts').appendChild(b);setTimeout(()=>b.remove(),15000)}
   m[k]=d;store.set('sk_seqd',m);
+}
+
+/* ---------- Point of Control (Volumenprofil) ---------- */
+let POCM=store.get('sk_pocm','view');if(!['view','seq','all'].includes(POCM))POCM='view';let VPR=null;
+function vpCalc(cs,i0,i1,nb){
+  i0=Math.max(0,i0);i1=Math.min(cs.length,i1);const sl=cs.slice(i0,i1);
+  if(sl.length<5||!sl.some(c=>c.v>0))return null;
+  let lo=Infinity,hi=-Infinity;sl.forEach(c=>{if(c.l<lo)lo=c.l;if(c.h>hi)hi=c.h});
+  const st=(hi-lo)/nb;if(!(st>0))return null;const vol=new Float64Array(nb);
+  sl.forEach(c=>{if(!(c.v>0))return;const a=Math.max(0,Math.floor((c.l-lo)/st)),b=Math.max(a,Math.min(nb-1,Math.floor((c.h-lo)/st-1e-9)));const n=b-a+1;for(let k=a;k<=b;k++)vol[k]+=c.v/n});
+  let p=0;vol.forEach((v,k)=>{if(v>vol[p])p=k});
+  {const ties=[];vol.forEach((v,k)=>{if(v>=vol[p]*(1-1e-9))ties.push(k)});p=ties[Math.floor((ties.length-1)/2)]}   // bei Gleichstand die mittlere Preisklasse
+  const tot=vol.reduce((x,y)=>x+y,0);let l2=p,h2=p,acc=vol[p];
+  while(acc<.7*tot&&(l2>0||h2<nb-1)){const dn=l2>0?vol[l2-1]:-1,up=h2<nb-1?vol[h2+1]:-1;if(up>=dn){h2++;acc+=vol[h2]}else{l2--;acc+=vol[l2]}}
+  return{lo,hi,st,vol,nb,poc:lo+(p+.5)*st,vah:lo+(h2+1)*st,val:lo+l2*st,max:vol[p],tot,n:sl.length};
+}
+function vpRange(cs,s,v0,vend){
+  if(POCM==='all')return[0,cs.length];
+  if(POCM==='seq'&&s&&s.seq)return[s.seq.O.i,cs.length];
+  return[v0,vend];
+}
+function renderPoc(s,cs,last){
+  const el=$('pocp');if(!el)return;const v=VPR;
+  const seg=`<div class="seg" id="pocm" role="group" aria-label="Zeitraum des Volumenprofils"><button type="button" data-m="view" class="${POCM==='view'?'on':''}">Sichtbarer Chart</button><button type="button" data-m="seq" class="${POCM==='seq'?'on':''}">Ab Punkt 0</button><button type="button" data-m="all" class="${POCM==='all'?'on':''}">Alles</button></div>`;
+  if(!v){el.innerHTML=`<h2>Point of Control (POC)</h2>${seg}<p class="note" style="margin-top:10px">${cs&&cs.some(c=>c.v>0)?'Zu wenige Kerzen für ein Volumenprofil.':'In diesen Daten gibt es kein Handelsvolumen (zum Beispiel Beispieldaten oder eigene CSV). Der POC braucht echte Kurse mit Volumen.'}</p>`;wire();return}
+  const dist=(v.poc/last-1)*100,fp=x=>(x>=0?'+':'−')+Math.abs(x).toFixed(2).replace('.',',')+' %';
+  let pos=last>v.vah?'Der Kurs steht <b>über dem Wertebereich</b>: teuer im Verhältnis zum meisten Handel, der POC liegt als Unterstützung darunter.':last<v.val?'Der Kurs steht <b>unter dem Wertebereich</b>: günstig im Verhältnis zum meisten Handel, der POC liegt als Widerstand darüber.':last>=v.poc?'Der Kurs steht im Wertebereich <b>über dem POC</b>. Der POC wirkt darunter als Unterstützung.':'Der Kurs steht im Wertebereich <b>unter dem POC</b>. Der POC wirkt darüber als Widerstand.';
+  let zr='';
+  if(s&&s.seq&&s.lvl){const a=s.lvl(.5),b=s.lvl(.667),lo=Math.min(a,b),hi=Math.max(a,b),R=s.seq.R*.03;
+    zr=v.poc>=lo-R&&v.poc<=hi+R?'<p class="note" style="margin-top:8px;color:var(--long)"><b>Der POC liegt in der SK-Einstiegszone.</b> Dort wurde viel gehandelt, das stärkt die Zone (Zusatzfaktor für den Vorteil).</p>':`<p class="note" style="margin-top:8px">Der POC liegt ${v.poc<lo?'unter':'über'} der SK-Einstiegszone (${fmt(lo)} bis ${fmt(hi)}).</p>`}
+  el.innerHTML=`<h2>Point of Control (POC)</h2>${seg}
+    <div class="poc-row" style="margin-top:8px"><span>POC (meistgehandelter Preis)</span><b style="color:var(--wait)">${fmt(v.poc)} <small style="color:var(--muted)">${fp(dist)}</small></b></div>
+    <div class="poc-row"><span>Wertebereich oben (VAH)</span><b>${fmt(v.vah)}</b></div><div class="poc-row"><span>Wertebereich unten (VAL)</span><b>${fmt(v.val)}</b></div>
+    <p class="note" style="margin-top:8px;color:var(--fg)">${pos}</p>${zr}
+    <p class="note" style="margin-top:8px">Berechnet aus ${v.n} Kerzen. Das Volumen jeder Kerze ist gleichmäßig auf ihre Spanne verteilt. Der Wertebereich enthält etwa 70 % des Volumens. Der POC ist nur eine Information und ändert kein SK-Signal.</p>`;
+  wire();
+  function wire(){el.querySelectorAll('#pocm [data-m]').forEach(b=>b.onclick=()=>{POCM=b.dataset.m;store.set('sk_pocm',POCM);try{draw(cur())}catch(e){}})}
 }
 /* ---------- Krypto-News ---------- */
 const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
