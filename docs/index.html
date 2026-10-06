@@ -65,6 +65,8 @@ a.btn{text-decoration:none;display:inline-block}
 u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--long)}u.sq.short{color:var(--short)}.chip.on u.sq{color:#031018}
 #pg-chart>.pgrid{order:3}
 .poc-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font:500 13px var(--body)}.poc-row:last-of-type{border:0}.poc-row b{font-family:var(--mono)}
+.ai-b{display:inline-block;padding:5px 14px;border-radius:999px;font:700 15px var(--display);letter-spacing:.08em}.ai-b.l{background:var(--long);color:#04140d}.ai-b.s{background:var(--short);color:#1a0210}.ai-b.w{background:rgba(255,203,92,.2);color:var(--wait)}.ai-b.n{background:rgba(129,151,189,.2);color:var(--muted)}
+.ai-box ul{margin:6px 0 0;padding-left:18px}.ai-box li{margin:3px 0;font:400 13.5px/1.45 var(--body)}.ai-box h4{font:700 11.5px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -356,6 +358,7 @@ body[data-tab="coins"] #chips{display:none}
   <div class="page" id="pg-start">
     <div class="panel lockbn" id="lockbn" hidden></div>
     <div class="panel seqbar" id="seqbar" aria-live="polite"></div>
+    <section class="panel" id="aip" hidden></section>
     <div class="panel calbn" id="calbn" hidden role="button" tabindex="0"></div>
     <section class="panel live1" id="live1" aria-label="Live-Chart">
   <div class="l1-head"><div class="l1-t"><span class="dot"></span><span class="l1-sym" id="l1sym">BTC / USDT · 1 Min</span></div><div class="l1-p"><b id="l1price">…</b><span id="l1chg"></span></div><span class="pill" id="l1st">LÄDT</span></div>
@@ -510,6 +513,15 @@ body[data-tab="coins"] #chips{display:none}
     <label for="wl">Bildschirm an lassen<select id="wl"><option value="0">Nein</option><option value="1">Ja</option></select></label>
     <label for="nt" id="ntl">ntfy-Thema (Push aufs Handy)<input id="nt" type="text" placeholder="z. B. sk-board-mein-name" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <div class="btnrow"><button id="snd" type="button">Ton an</button><button id="ntf" type="button" class="off">Hinweise</button><button id="altest" type="button">Alarm testen</button></div>
+  </div>
+  <div class="cfg-group"><h3>KI-Assistent (zuschaltbar)</h3>
+    <label for="aie">KI liest mit<select id="aie"><option value="off" selected>Aus</option><option value="on">An</option></select></label>
+    <label for="aik">API-Schlüssel (Anthropic)<input id="aik" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+    <label for="aim">Modell<select id="aim"><option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (ausgewogen)</option><option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (günstig, schnell)</option><option value="claude-opus-5-5">Claude Opus 5.5 (stark)</option><option value="claude-fable-5-1">Claude Fable 5.1 (stärkstes)</option></select></label>
+    <label for="aia">Automatisch<select id="aia"><option value="off" selected>Nur auf Knopfdruck</option><option value="sig">Bei neuen Signalen</option></select></label>
+    <label for="aii">Chart-Bild mitsenden<select id="aii"><option value="yes" selected>Ja</option><option value="no">Nein</option></select></label>
+    <label for="aic">Höchstens pro Tag<input id="aic" type="number" min="1" max="200" step="1" value="20"></label>
+    <button type="button" id="aitest">KI testen</button><p class="note" id="aimsg" style="margin-top:6px"></p>
   </div>
   <div class="cfg-group"><h3>Daten</h3>
     <label for="csv">Eigene Kerzen laden (CSV)<input id="csv" type="file" accept=".csv,text/csv"></label>
@@ -744,7 +756,9 @@ function checkOne(c,quiet,s){
   const kind=s.state==='counter'?'Gegentrade':s.seq.kind==='neu'?'Haupt':s.seq.kind.indexOf('Wieder')===0?'Wiedereinstieg':s.seq.kind.indexOf('verl')===0?'Verlängert':'Manuell';
   const e={t:Date.now(),coin:c,tf:tf(),dir:s.dir,kind,entry:s.lv.entry,sl:s.lv.sl,tp1:s.lv.tp1,crv:s.crv,old:quiet,status:'offen'};
   log.unshift(e);log=log.slice(0,60);store.set('sk_log',log);renderLog();
-  edgeCheck(c,s,e).catch(()=>null).then(ed=>{if(ed&&ed.n){e.edge=ed;store.set('sk_log',log);renderLog();renderChips()}if(!quiet)alertSignal(e)});
+  edgeCheck(c,s,e).catch(()=>null).then(ed=>{if(ed&&ed.n){e.edge=ed;store.set('sk_log',log);renderLog();renderChips()}if(!quiet)alertSignal(e);
+    if(!quiet&&$('aia').value==='sig'&&aiOn()){const sv=sel;askAI(c,{force:true}).then(r=>{if(!r)return;e.ai={emp:r.emp,kurz:r.kurz};store.set('sk_log',log);renderLog();
+      const bx=document.createElement('div');bx.className='toast '+(r.emp==='KAUFEN'?'long':r.emp==='VERKAUFEN'?'short':'');bx.innerHTML='<b>KI zu '+nesc(c)+' '+nesc(tf())+': '+nesc(r.emp)+'</b><div>'+nesc(r.kurz)+'</div>';bx.onclick=()=>{bx.remove();pick(c);setTab('start')};$('toasts').appendChild(bx);setTimeout(()=>bx.remove(),25000)})}});
 }
 /* Doppelter Vorteil (Confluence): SK-Signal plus mindestens ein unabhängiger zweiter Faktor in derselben Richtung.
    Faktor 1: großer Liquidations-Bereich liegt zwischen Einstieg und Gewinnziel (Magnet). Faktor 2: die übergeordnete Zeitebene hat eine Sequenz in dieselbe Richtung. Faktor 3: RSI oder Stochastik zeigen überkauft/überverkauft in Signalrichtung.
@@ -915,7 +929,7 @@ function renderScanner(){renderChips();
 }
 function renderLog(){
   const stTag=st=>st==='Ziel'?'<span class="tag long">Ziel</span>':st&&st.indexOf('Stop')===0?'<span class="tag short">'+st+'</span>':st==='BE fällig'?'<span class="tag wait">BE fällig</span>':'<span class="tag mid">offen</span>';
-  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}${e.edge?` <span class="tag wait" title="${e.edge.f.join(' · ').replace(/"/g,'')}">★ ${e.edge.n}x Vorteil</span>`:''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
+  $('log').innerHTML=log.length?log.slice(0,12).map(e=>`<tr class="click" data-c="${e.coin}"><td>${new Date(e.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${e.coin} ${e.tf}</td><td><span class="tag ${e.dir} sig">${e.dir==='long'?'Long':'Short'}</span>${e.old?' *':''}${e.ai?` <span class="tag mid" title="${nesc(e.ai.kurz)}">KI: ${nesc(e.ai.emp)}</span>`:''}${e.edge?` <span class="tag wait" title="${e.edge.f.join(' · ').replace(/"/g,'')}">★ ${e.edge.n}x Vorteil</span>`:''}<div class="sub">${e.kind||''}</div></td><td>${fmt(e.entry)}</td><td>${fmt(e.sl)}</td><td>${fmt(e.tp1)}</td><td>${stTag(e.status)}</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Noch kein Signal. Sobald ein Coin in seine Zone läuft, erscheint es hier.</td></tr>';
   document.querySelectorAll('#log tr[data-c]').forEach(tr=>tr.onclick=()=>{pick(tr.dataset.c);setTab('start')});
   const w=log.filter(e=>e.status==='Ziel').length,l=log.filter(e=>e.status&&e.status.indexOf('Stop')===0).length;
   $('lgs').textContent=w+l?`Auswertung: ${w} Treffer, ${l} Stopps (Quote ${Math.round(100*w/(w+l))} %). Stopps sind Fälle für die Fehleranalyse.`:'Der Status zeigt, ob ein Signal sein Ziel erreicht hat oder ausgestoppt wurde.';
@@ -967,7 +981,7 @@ function renderHero(s,b,c){
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
   set('wait','no','Zu spät','Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
 }
-function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar()}catch(e){}
+function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar();renderAI()}catch(e){}
 
   $('swv').textContent=$('sw').value;
   const b=cur();if(!b||!b.s){$('vm').textContent='LÄDT';return}
@@ -1982,6 +1996,104 @@ function renderPoc(s,cs,last){
   wire();
   function wire(){el.querySelectorAll('#pocm [data-m]').forEach(b=>b.onclick=()=>{POCM=b.dataset.m;store.set('sk_pocm',POCM);try{draw(cur())}catch(e){}})}
 }
+
+/* ---------- KI-Assistent: liest Charts und Signale mit und gibt Einschätzungen ---------- */
+const AI={busy:false,res:store.get('sk_ai_res',{}),cache:{}};
+const aiOn=()=>$('aie').value==='on'&&($('aik').value||'').trim().length>10&&(LOCAL||DIRECT);
+function aiCount(){const d=store.get('sk_ai_n',{d:'',n:0});return d.d===LKD()?d.n:0}
+function aiBump(){store.set('sk_ai_n',{d:LKD(),n:aiCount()+1})}
+const AISYS=`Du bist der KI-Assistent im "Börsensystem nach SK". Das System folgt dem SK-System von Stefan Kassing (Tradebook von Sascha Wenzel): Sequenz 0-A-B-C, A gilt nach Rücklauf über 0,382, Einstiegszone 0,5 bis 0,667, Ziel 161,8 bis 200 % der Extension von B, Stop knapp hinter 0,786, Risiko 1 bis 3 % je Trade, CRV mindestens 1.
+Du bekommst die aktuellen Daten der App (Sequenz, Signal, Indikatoren, Volumenprofil, Zeitebenen, Liquidität, Termine, News, Konto und Sperre) und oft ein Chart-Bild.
+Regeln:
+1. Die SK-Regeln gehen immer vor. Du darfst ein SK-Signal nicht umdeuten und keinen Trade gegen die Regeln empfehlen. Gibt das System kein Signal (signal.aktiv ist false), lautet die Empfehlung WARTEN oder KEIN TRADE. Du darfst dann erklären, worauf zu achten ist.
+2. Bei einem aktiven Signal bewertest du die Qualität: Passt die größere Zeitebene, gibt es Zusatzfaktoren (RSI, POC, Liquidität), stehen wichtige Termine an, ist die Sperre aktiv? Daraus ergibt sich KAUFEN oder VERKAUFEN (in Richtung des Signals), WARTEN (zum Beispiel wegen eines Termins) oder KEIN TRADE (zum Beispiel bei aktiver Sperre).
+3. Sei ehrlich über Unsicherheit. Keine Garantien, keine Kursversprechen, keine erfundenen Zahlen. Nutze nur die gelieferten Daten.
+4. Schreibe kurz, klar, in einfachem Deutsch für einen Laien.
+Antworte ausschließlich mit einem JSON-Objekt ohne weiteren Text:
+{"empfehlung":"KAUFEN|VERKAUFEN|WARTEN|KEIN TRADE","sicherheit":"niedrig|mittel|hoch","kurz":"ein Satz","gruende":["..."],"risiken":["..."],"plan":"was konkret tun (Einstieg, Stop, Ziel, Größe) oder worauf warten","chart":"was du im Chart-Bild siehst, ein Satz"}`;
+function aiRound(v){return v==null||!isFinite(v)?null:+(+v).toPrecision(6)}
+function aiCtx(c){
+  const b=board[c],s=b&&b.s;if(!b||!s)return null;const x=s,seq=x.seq,o=oscOf(c),P=b.candles?(()=>{try{return vpCalc(b.candles,seq?seq.O.i:0,b.candles.length,48)}catch(e){return null}})():null;
+  const ls=lockState(),now=Date.now();
+  const hi=CAL.ev.filter(e=>e.imp==='High'&&e.t>now-36e5&&e.t<now+864e5).slice(0,4).map(e=>({termin:calTitle(e.title),waehrung:e.cur,in_min:Math.round((e.t-now)/6e4)}));
+  const news=NEWS.items.slice(0,5).map(n=>n.title);
+  const ctx={coin:c,zeitebene:tf(),preis:aiRound(x.last),
+    sequenz:seq?{richtung:seq.d===1?'bullisch (Long-Setup)':'bärisch (Short-Setup)',punkt0:aiRound(seq.O.p),punktA:aiRound(seq.A.p),punktB:seq.B?aiRound(seq.B.p):null,rücklauf_tiefe_max:aiRound(x.depth),rücklauf_aktuell:aiRound(x.pos),A_bestätigt:!!x.confirmed,phase:x.state,setup_ungültig_weil_B_zu_tief:!!x.broken,struktur_bestätigungen:seq.conf,art:seq.kind}:null,
+    signal:{aktiv:x.dir!=='none',richtung:x.dir,einstieg:aiRound(x.lv&&x.lv.entry),stop:aiRound(x.lv&&x.lv.sl),ziel1:aiRound(x.lv&&x.lv.tp1),crv:aiRound(x.crv),gesperrt_durch:x.gate||null},
+    einstiegszone:seq&&x.lvl?[aiRound(x.lvl(.5)),aiRound(x.lvl(.667))]:null,
+    zeitebenen:{größere:mtf.parent&&mtf.parent.s?(mtf.parent.s.seq?(mtf.parent.s.seq.d===1?'bullisch':'bärisch'):'keine Sequenz'):null,kleinere:mtf.child&&mtf.child.s?(mtf.child.s.seq?(mtf.child.s.seq.d===1?'bullisch':'bärisch'):'keine Sequenz'):null,tf_größere:mtf.parent&&mtf.parent.tf,tf_kleinere:mtf.child&&mtf.child.tf},
+    indikatoren:o?{rsi14:aiRound(o.rsi),stochastik:aiRound(o.st),zone:o.zone||'neutral'}:null,
+    volumenprofil:P?{poc:aiRound(P.poc),wertebereich_oben:aiRound(P.vah),wertebereich_unten:aiRound(P.val)}:null,
+    vorteil_faktoren:(()=>{const e=log.find(l=>l.coin===c&&l.tf===tf()&&l.edge);return e?e.edge.f:[]})(),
+    markt:{alle_coins_bullisch:COINS.filter(k=>sqOf(k)===1).length,alle_coins_bärisch:COINS.filter(k=>sqOf(k)===-1).length},
+    wichtige_termine_24h:hi,schlagzeilen:news,
+    konto:{usdt:+$('acc').value||0,risiko_je_trade_prozent:+$('rk').value||0,sperre_aktiv:ls.on,sperre_grund:ls.why||[]},
+    kerzen_letzte_40_ohlc:(b.candles||[]).slice(-40).map(k=>[aiRound(k.o),aiRound(k.h),aiRound(k.l),aiRound(k.c)])};
+  return ctx;
+}
+function aiImg(c){
+  try{const b=board[c],s=b&&b.s;if(!b||!b.candles||!b.candles.length)return null;
+    const cs=b.candles.slice(-100),W=900,H=520,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+    g.fillStyle='#0a1325';g.fillRect(0,0,W,H);
+    const lv=[];if(s&&s.seq&&s.lvl){lv.push([s.lvl(.5),'0,5 Zone','#22f0a8'],[s.lvl(.667),'0,667 Zone','#22f0a8']);if(s.lv){lv.push([s.lv.sl,'Stop','#ff4b86'],[s.lv.tp1,'Ziel 1','#a595ff'])}}
+    let hi=Math.max(...cs.map(k=>k.h)),lo=Math.min(...cs.map(k=>k.l));lv.forEach(l=>{if(l[0]<hi*1.15&&l[0]>lo*.85){hi=Math.max(hi,l[0]);lo=Math.min(lo,l[0])}});
+    const pad={l:70,r:20,t:20,b:20},iw=W-pad.l-pad.r,ih=H-pad.t-pad.b,Y=p=>pad.t+ih*(1-(p-lo)/(hi-lo||1)),cw=iw/cs.length;
+    g.font='13px monospace';g.fillStyle='#8197bd';for(let i=0;i<=5;i++){const p=lo+(hi-lo)*i/5;g.fillText(fmt(p),4,Y(p)+4);g.strokeStyle='rgba(140,180,255,.12)';g.beginPath();g.moveTo(pad.l,Y(p));g.lineTo(W-pad.r,Y(p));g.stroke()}
+    cs.forEach((k,i)=>{const x=pad.l+cw*(i+.5),up=k.c>=k.o;g.strokeStyle=g.fillStyle=up?'#22f0a8':'#ff4b86';g.beginPath();g.moveTo(x,Y(k.h));g.lineTo(x,Y(k.l));g.stroke();g.fillRect(x-cw*.35,Y(Math.max(k.o,k.c)),cw*.7,Math.max(1.5,Math.abs(Y(k.o)-Y(k.c))))});
+    lv.forEach(([p,t,col])=>{if(p<lo||p>hi)return;g.strokeStyle=col;g.setLineDash([6,4]);g.beginPath();g.moveTo(pad.l,Y(p));g.lineTo(W-pad.r,Y(p));g.stroke();g.setLineDash([]);g.fillStyle=col;g.fillText(t+' '+fmt(p),pad.l+6,Y(p)-4)});
+    try{const P=vpCalc(b.candles,s&&s.seq?s.seq.O.i:0,b.candles.length,48);if(P&&P.poc>=lo&&P.poc<=hi){g.strokeStyle='#ffcb5c';g.lineWidth=2;g.beginPath();g.moveTo(pad.l,Y(P.poc));g.lineTo(W-pad.r,Y(P.poc));g.stroke();g.lineWidth=1;g.fillStyle='#ffcb5c';g.fillText('POC '+fmt(P.poc),W-pad.r-130,Y(P.poc)-4)}}catch(e){}
+    g.fillStyle='#e3ecff';g.font='bold 15px monospace';g.fillText(c+' / USDT · '+tf(),pad.l+6,16);
+    return cv.toDataURL('image/jpeg',.72).split(',')[1];
+  }catch(e){return null}
+}
+async function aiCall(content,maxTok){
+  const key=($('aik').value||'').trim();
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:$('aim').value,max_tokens:maxTok||900,system:AISYS,messages:[{role:'user',content}]}),signal:AbortSignal.timeout?AbortSignal.timeout(60000):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=j&&j.error&&j.error.message||('Fehler '+r.status);throw{code:r.status,msg:m}}
+  return(j.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
+}
+function aiParse(t){const m=String(t).match(/\{[\s\S]*\}/);if(!m)throw new Error('keine Antwort im erwarteten Format');const o=JSON.parse(m[0]);
+  const E=String(o.empfehlung||'').toUpperCase();return{emp:['KAUFEN','VERKAUFEN','WARTEN','KEIN TRADE'].includes(E)?E:'WARTEN',sich:String(o.sicherheit||'').toLowerCase(),kurz:String(o.kurz||''),gruende:(o.gruende||[]).map(String).slice(0,6),risiken:(o.risiken||[]).map(String).slice(0,5),plan:String(o.plan||''),chart:String(o.chart||'')}}
+async function askAI(c,opt){
+  opt=opt||{};if(AI.busy)return null;
+  if(!aiOn()){renderAI();return null}
+  if(aiCount()>=(+$('aic').value||20)){AI.err='Das Tageslimit von '+($('aic').value||20)+' Einschätzungen ist erreicht.';renderAI();return null}
+  const ctx=aiCtx(c);if(!ctx){AI.err='Für diesen Coin liegen noch keine Daten vor.';renderAI();return null}
+  const key=[c,tf(),ctx.sequenz&&ctx.sequenz.punkt0,ctx.sequenz&&ctx.sequenz.punktA,ctx.signal.aktiv,ctx.sequenz&&ctx.sequenz.phase].join('|');
+  const old=AI.cache[key];if(!opt.force&&old&&Date.now()-old.t<10*6e4){AI.res[c+'|'+tf()]=old;renderAI();return old}
+  AI.busy=true;AI.err='';renderAI();
+  try{
+    const content=[];const img=$('aii').value==='yes'?aiImg(c):null;if(img)content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}});
+    content.push({type:'text',text:'Aktuelle Daten der App (JSON):\n'+JSON.stringify(ctx)+'\n\nGib deine Einschätzung als JSON.'});
+    const txt=await aiCall(content),r=aiParse(txt);r.t=Date.now();r.model=$('aim').value;r.img=!!img;aiBump();
+    AI.cache[key]=r;AI.res[c+'|'+tf()]=r;store.set('sk_ai_res',AI.res);AI.busy=false;renderAI();return r;
+  }catch(e){AI.busy=false;AI.err=e&&e.code===401?'Der API-Schlüssel wurde abgelehnt. Prüfe ihn in den Einstellungen.':e&&e.code===429?'Zu viele Anfragen oder Guthaben aufgebraucht. Später erneut versuchen.':e&&e.code?'Fehler von Anthropic: '+(e.msg||e.code):'Keine Verbindung zur KI ('+(e&&e.message||'Netzwerk')+').';renderAI();return null}
+}
+function renderAI(){
+  const el=$('aip');if(!el)return;
+  if($('aie').value!=='on'){el.hidden=true;return}
+  el.hidden=false;
+  if(!(LOCAL||DIRECT)){el.innerHTML='<h2>KI-Einschätzung</h2><p class="note">Die KI gibt es nur in der Windows-Version und in der Handy-App.</p>';return}
+  if(!aiOn()){el.innerHTML='<h2>KI-Einschätzung</h2><p class="note">Trage unter <b>Mehr</b> bei „KI-Assistent“ deinen API-Schlüssel ein, dann kann die KI mitlesen.</p>';return}
+  const k=sel+'|'+tf(),r=AI.res[k],cls={'KAUFEN':'l','VERKAUFEN':'s','WARTEN':'w','KEIN TRADE':'n'};
+  const li=a=>a&&a.length?'<ul>'+a.map(x=>'<li>'+nesc(x)+'</li>').join('')+'</ul>':'';
+  el.innerHTML=`<h2>KI-Einschätzung <span class="pill" style="margin-left:6px;vertical-align:middle">${nesc(sel)} · ${nesc(tf())}</span><span class="zb"><button type="button" id="aigo" ${AI.busy?'disabled':''}>${AI.busy?'Die KI liest mit …':'Jetzt einschätzen'}</button></span></h2>`+
+   (AI.err?`<p class="note" style="color:var(--short)">${nesc(AI.err)}</p>`:'')+
+   (r?`<div class="ai-box"><span class="ai-b ${cls[r.emp]}">${nesc(r.emp)}</span> <span class="note">Sicherheit: ${nesc(r.sich||'–')} · ${new Date(r.t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}${r.img?' · mit Chart-Bild':''}</span>
+     <p style="font:600 15px/1.4 var(--body);margin:10px 0 0">${nesc(r.kurz)}</p>${r.chart?`<h4>Im Chart</h4><div class="note" style="color:var(--fg)">${nesc(r.chart)}</div>`:''}<h4>Gründe</h4>${li(r.gruende)}<h4>Risiken</h4>${li(r.risiken)}${r.plan?`<h4>Plan</h4><div class="note" style="color:var(--fg)">${nesc(r.plan)}</div>`:''}</div>`:(AI.busy?'':'<p class="note">Tippe auf „Jetzt einschätzen“. Die KI liest die Daten und das Chart dieses Coins mit und gibt eine Empfehlung.</p>'))+
+   `<p class="note" style="margin-top:10px">Die KI kann irren und ist keine Anlageberatung. Sie darf kein SK-Signal umdeuten: Ohne Signal lautet die Empfehlung höchstens „Warten“. Die Daten werden dafür an Anthropic gesendet. ${aiCount()} von ${nesc($('aic').value||20)} Einschätzungen heute.</p>`;
+  const b=$('aigo');if(b)b.onclick=()=>askAI(sel,{force:true});
+}
+async function aiTest(){
+  const m=$('aimsg');m.textContent='Prüfe …';
+  if(!(LOCAL||DIRECT)){m.textContent='Nur in der Windows-Version und in der Handy-App möglich.';return}
+  if(($('aik').value||'').trim().length<10){m.textContent='Bitte zuerst den API-Schlüssel eintragen.';return}
+  try{const t=await aiCall([{type:'text',text:'Antworte nur mit diesem JSON: {"empfehlung":"WARTEN","sicherheit":"hoch","kurz":"Test ok","gruende":[],"risiken":[],"plan":"","chart":""}'}],100);aiParse(t);m.textContent='Verbindung ok. Die KI antwortet.';m.style.color='var(--long)'}
+  catch(e){m.style.color='var(--short)';m.textContent=e&&e.code===401?'Schlüssel abgelehnt.':e&&e.code?'Fehler: '+(e.msg||e.code):'Keine Verbindung ('+(e&&e.message||'Netzwerk')+').'}
+}
+$('aitest').onclick=aiTest;['aie','aik','aic'].forEach(id=>$(id).addEventListener('input',renderAI));
 /* ---------- Krypto-News ---------- */
 const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
 const nesc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
