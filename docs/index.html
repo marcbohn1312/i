@@ -69,6 +69,7 @@ u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--l
 .ai-box ul{margin:6px 0 0;padding-left:18px}.ai-box li{margin:3px 0;font:400 13.5px/1.45 var(--body)}.ai-box h4{font:700 11.5px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}
 .lrn-t{width:100%;border-collapse:collapse;font:500 12.5px var(--body)}.lrn-t th{font:700 10.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px 6px 0}.lrn-t td{padding:7px 8px 7px 0;border-top:1px solid var(--line)}
 .les{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font:400 13.5px/1.45 var(--body)}.les input{margin-top:4px}.les small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}.les button{padding:3px 10px;font-size:11px;margin-left:auto}
+.cm{display:grid;gap:2px;font:600 9.5px var(--mono);margin-top:8px}.cm div{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:3px;color:#fff}.cm .h{color:var(--muted);background:none;aspect-ratio:auto;font-size:9px}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -421,6 +422,7 @@ body[data-tab="coins"] #chips{display:none}
         <section data-o="9" class="panel" id="tmp"><h2>Trade-Management laut Tradebook</h2><ul class="tm">
       <li>Nie ohne Stop-Loss handeln. Der Stop wird nicht nachgezogen, außer auf Break-even.</li>
       <li>Beim Break-even-Stop den Spread beachten und den Stop nicht genau auf den Einstieg legen.</li>
+      <li id="tmbe"></li>
       <li>Das Zielgebiet gilt als abgearbeitet, wenn der Kurs 5 Pips vor dem 161,8er ankommt.</li>
       <li>Gewinne sollen am gleichen Tag realisiert werden.</li>
       <li>Wird ein Trade nach dem Break-even ausgestoppt, gleich wieder einsteigen, solange die Sequenz gilt.</li>
@@ -448,7 +450,7 @@ body[data-tab="coins"] #chips{display:none}
   </div>
   <div class="page" id="pg-coins">
     <div class="pgrid">
-      <div class="pcol"><section class="panel" id="scanp"><h2>Alle Coins</h2><div class="tw"><table><thead><tr><th>Coin</th><th>Preis</th><th>Muster</th><th>Status</th><th>Abstand</th></tr></thead><tbody id="scan"></tbody></table></div>
+      <div class="pcol"><section class="panel" id="corrp"></section><section class="panel" id="scanp"><h2>Alle Coins</h2><div class="tw"><table><thead><tr><th>Coin</th><th>Preis</th><th>Muster</th><th>Status</th><th>Abstand</th></tr></thead><tbody id="scan"></tbody></table></div>
         <p class="note" style="margin-top:8px" id="scn"></p></section></div>
       <div class="pcol"><section class="panel"><h2>Signal-Verlauf</h2><div class="tw"><table><thead><tr><th>Zeit</th><th>Coin</th><th>Signal</th><th>Einstieg</th><th>Stop</th><th>Ziel 1</th><th>Status</th></tr></thead><tbody id="log"></tbody></table></div>
         <p class="note" id="lgs" style="margin-top:8px"></p>
@@ -458,7 +460,7 @@ body[data-tab="coins"] #chips{display:none}
       <p class="note" style="color:var(--fg);margin-bottom:10px">Die App läuft Kerze für Kerze durch die Vergangenheit und prüft, welche SK-Signale es gegeben hätte und ob danach das Gewinnziel 1 oder die Verlustgrenze zuerst erreicht wurde. Es gilt die oben gewählte Zeitebene.</p>
       <div class="zbar"><span class="note" id="btinfo"></span><span class="zb"><button type="button" id="btone">Nur <span id="btcoin">BTC</span></button><button type="button" id="btall">Alle 12 Coins</button></span></div>
       <div id="btout"></div><canvas id="btc" style="width:100%;height:150px;display:none;margin-top:10px" aria-label="Kapitalverlauf in R"></canvas>
-      <p class="note" style="margin-top:10px">Vereinfachungen: Einstieg zum angezeigten Einstiegslevel, Ziel ist Gewinnziel 1, Stop und Ziel in derselben Kerze zählt als Stop (vorsichtig), Gebühren und Gleitkosten sind nicht eingerechnet, ein Trade ohne Entscheidung nach 200 Kerzen zählt als offen. Die automatische Erkennung von Punkt 0 und A ist eine Annäherung an das SK-System. Vergangene Ergebnisse sind keine Garantie für die Zukunft.</p></section>
+      <p class="note" style="margin-top:10px">Vereinfachungen: Einstieg zum angezeigten Einstiegslevel, Ziel ist Gewinnziel 1, Stop und Ziel in derselben Kerze zählt als Stop (vorsichtig), Spread und Gebühren sind laut Einstellung eingerechnet (Gleitkosten nicht), ein Trade ohne Entscheidung nach 200 Kerzen zählt als offen. Die automatische Erkennung von Punkt 0 und A ist eine Annäherung an das SK-System. Vergangene Ergebnisse sind keine Garantie für die Zukunft.</p></section>
   </div>
   <div class="page" id="pg-liq">
     <section class="panel" id="liqp"><h2>Liquiditäts-Karte <span class="pill" id="lqsrc" style="margin-left:6px;vertical-align:middle">lädt …</span></h2>
@@ -494,6 +496,7 @@ body[data-tab="coins"] #chips{display:none}
     <section class="panel" id="lrnp" style="margin-bottom:16px"></section>
     <div id="cfgp" class="cfg-grid">
   <div class="cfg-group"><h3>Sequenz und Strategie</h3>
+    <label for="cd"><span>Mindestdauer der Korrektur <span class="v" id="cdv">3</span> Kerzen</span><input id="cd" type="range" min="0" max="10" step="1" value="3"></label>
     <label for="sw"><span>Swing-Länge <span class="v" id="swv">5</span></span><input id="sw" type="range" min="2" max="15" step="1" value="5"></label>
     <label for="sm">Strategie<select id="sm"><option value="k786" selected>1-Trade: Stop knapp hinter 0,786</option><option value="pips">Multi-Trade: fester Stop in Pips</option></select></label>
     <div class="row2"><label for="pp">Stop in Pips<input id="pp" type="number" min="1" step="1" value="100"></label>
@@ -506,6 +509,7 @@ body[data-tab="coins"] #chips{display:none}
     <label for="rk"><span>Risiko je Trade <span class="v" id="rkv">1</span> %</span><input id="rk" type="range" min="0.25" max="3" step="0.25" value="1"></label>
     <label for="mh"><span>Max. Hebel bei Automatik <span class="v" id="mhv">10</span>x</span><input id="mh" type="range" min="1" max="50" step="1" value="10"></label>
     <label for="dl"><span>Tagesverlust <span class="v" id="dlv">3</span> %</span><input id="dl" type="range" min="1" max="10" step="0.5" value="3"></label>
+    <label for="spr"><span>Spread und Gebühren <span class="v" id="sprv">0,10</span> % (Hin und zurück)</span><input id="spr" type="range" min="0" max="0.5" step="0.01" value="0.1"></label>
     <label for="hr"><span>Gesamtrisiko <span class="v" id="hrv">5</span> %</span><input id="hr" type="range" min="1" max="10" step="0.5" value="5"></label>
     <label for="lsr"><span>Pause nach Verlusten in Folge <span class="v" id="lsrv">3</span></span><input id="lsr" type="range" min="0" max="6" step="1" value="3"></label>
     <label for="lk">Sperre bei Limit<select id="lk"><option value="mute" selected>Hinweis, Alarme stumm (empfohlen)</option><option value="note">Nur Hinweis</option><option value="off">Aus</option></select></label>
@@ -556,7 +560,7 @@ const LOCAL=location.protocol==='http:'&&/^(127\.0\.0\.1|localhost)$/.test(locat
 const DIRECT=!LOCAL&&!window.claude;           // eigenständige Handy-App (PWA): Kurse direkt von den Börsen
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const L1TF=[['1m','1 Min'],['5m','5 Min'],['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']];
+const L1TF=[['1m','1 Min'],['5m','5 Min'],['15m','15 Min'],['30m','30 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']];
 const V1={tf:store.get('sk_l1tf','1m'),n:null,off:0,cw:0,len:0,cur:0};if(!L1TF.some(x=>x[0]===V1.tf))V1.tf='1m';
 const ZM={n:null,off:0,cw:0,len:0,cur:0};
 let L1={coin:'',tf:'',candles:[],ts:0,live:false,err:''};
@@ -571,15 +575,15 @@ function css(n){return getComputedStyle(document.documentElement).getPropertyVal
 /* ---------- Daten ---------- */
 function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 function sample(coin,tf){
-  const r=rng([...coin+tf].reduce((a,c)=>a*31+c.charCodeAt(0),7)),vol={'5m':.0022,'15m':.004,'1h':.008,'4h':.016,'1d':.03,'1w':.06,'1m':.0009}[tf]||.016;
+  const r=rng([...coin+tf].reduce((a,c)=>a*31+c.charCodeAt(0),7)),vol={'5m':.0022,'15m':.004,'30m':.0055,'1h':.008,'4h':.016,'1d':.03,'1w':.06,'1m':.0009}[tf]||.016;
   const out=[];let p=BASE[coin]||100,ph=r()*6;
   for(let i=0;i<420;i++){const o=p,c=o*(1+(r()-.5)*2*vol+Math.sin(i/38+ph)*vol*.17),h=Math.max(o,c)*(1+r()*vol*.6),l=Math.min(o,c)*(1-r()*vol*.6);out.push({o,h,l,c});p=c}
   return out;
 }
 function getMcp(){if(!mcpP)mcpP=(window.claude&&window.claude.use?window.claude.use('mcp'):Promise.resolve(null)).catch(()=>null);return mcpP}
-const CTF={'1m':'1m','5m':'5m','15m':'15m','1h':'1h','4h':'4h','1d':'1D'};
+const CTF={'1m':'1m','5m':'5m','15m':'15m','30m':'30m','1h':'1h','4h':'4h','1d':'1D'};
 async function directKlines(coin,tf,limit){
-  const lim=limit||500,ct={'1m':'1m','5m':'5m','15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'7D'}[tf];
+  const lim=limit||500,ct={'1m':'1m','5m':'5m','15m':'15m','30m':'30m','1h':'1h','4h':'4h','1d':'1D','1w':'7D'}[tf];
   const get=async url=>{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined});if(!r.ok)throw 0;return r.json()};
   for(const [name,host] of [['Binance','api.binance.com'],['Binance Mirror','data-api.binance.vision']]){
     try{const j=await get(`https://${host}/api/v3/klines?symbol=${coin}USDT&interval=${tf}&limit=${lim}`);
@@ -697,6 +701,10 @@ function analyseDir(cs,key,wantD,useManual){
   s.broken=s.depth>.667+.02;                      // Punkt B lag schon hinter der Einstiegszone: Korrekturlevel überschritten, Setup ungültig (Tradebook)
   s.state=!s.confirmed?'unconf':(s.broken||s.pos>.667+.02)?'beyond':s.pos<.5?'wait':'in';
   s.Bp=s.state==='in'&&seq.B?seq.B.p:s.lvl(.618);
+  /* 100-%-Extension (Tradebook): überschritten = Zielgebiet sehr wahrscheinlich, abgeprallt = Wiedereinstieg über die B-C-Korrektur */
+  s.ext='';s.extM=0;
+  if(seq.B&&s.confirmed&&!s.broken){let m=0,pk=null;for(let i=seq.B.i+1;i<cs.length;i++){const v=d===1?cs[i].h:cs[i].l,e=d*(v-seq.B.p)/R;if(e>m){m=e;pk=v}}
+    s.extM=m;s.ext=m>=1?'ueber':(m>=.9&&pk!=null&&d*(pk-last)/R>=.15)?'abprall':''}
   s.tgt=t=>s.Bp+d*t*R;                           // trendbasierte Extension 0-A-B: B + t * (A-0)
   s.dist=(s.state==='wait'||s.state==='unconf')?Math.abs(last-s.lvl(.5))/last:0;
   const pz1=pipSize(last),pz=pz1*(+$('pp').value||100);
@@ -719,7 +727,8 @@ function analyseDir(cs,key,wantD,useManual){
   }
   const risk=Math.abs(entry-sl);s.crv=risk>0?Math.abs(s.lv.tp1-entry)/risk:0;
   s.conf=seq.conf;
-  s.gate=(s.state==='in'&&$('st').value==='sk'&&seq.conf!=null&&seq.conf<3)?'conf':'';
+  const minC=+$('cd').value||0;s.elapsed=cs.length-1-A.i;s.pullback=minC>0&&s.elapsed<minC;s.minC=minC;   // Tradebook: Pullback (schnell) ist keine Korrektur (langsamer, über mehr Kerzen)
+  s.gate=(s.state==='in'&&$('st').value==='sk'&&seq.conf!=null&&seq.conf<3)?'conf':(s.state==='in'&&$('st').value==='sk'&&s.pullback)?'pull':'';
   s.dir=(s.state==='in'||s.state==='counter')&&s.crv>=s.minCrv&&!s.gate?(s.side===1?'long':'short'):'none';
   s.view0=Math.max(0,Math.min(O.i-12,cs.length-70),cs.length-120);
   return s;
@@ -855,7 +864,7 @@ function sigCls(c){const b=board[c],s=b&&b.s;if(!s)return'';const d=s.dir!=='non
 /* 24-Stunden-Veränderung für die Coin-Auswahl */
 let CH24={};
 function chg(c){let v=CH24[c];
-  if(v==null){const b=board[c],cs=b&&b.candles,st={'15m':9e5,'1h':36e5,'4h':144e5,'1d':864e5}[tf()];
+  if(v==null){const b=board[c],cs=b&&b.candles,st={'15m':9e5,'30m':18e5,'1h':36e5,'4h':144e5,'1d':864e5}[tf()];
     if(cs&&st&&cs.length>2&&cs[cs.length-1].t){const n=Math.round(864e5/st),a=cs[Math.max(0,cs.length-1-n)];if(a&&a.c>0&&cs.length-1>=n)v=(cs[cs.length-1].c/a.c-1)*100}}
   if(v==null||!isFinite(v))return'<span class="ch">24h –</span>';
   return `<span class="ch ${v>=0?'u':'d'}">24h ${(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')} %</span>`}
@@ -906,12 +915,12 @@ function renderChips(){
   box.innerHTML=COINS.map(c=>{const i=chipInfo(c);return `<button type="button" class="chip ${c===sel&&!custom?'on':''}" data-c="${c}" aria-pressed="${c===sel&&!custom}"><span class="sy">${c}${(()=>{const d=sqOf(c);return d?`<u class="sq ${SQ[d][2]}" title="${SQ[d][0]}">${SQ[d][1]}</u>`:''})()}</span><span class="pr">${i.p}</span>${chg(c)}${oscChip(c)}<span class="bd ${i.k}">${i.t}</span></button>`}).join('');
   box.querySelectorAll('.chip').forEach(b=>b.onclick=()=>pick(b.dataset.c));box.scrollLeft=x;
 }
-const TFL={'15m':'15m','1h':'1h','4h':'4h','1d':'1D','1w':'1W'};
+const TFL={'15m':'15m','30m':'30m','1h':'1h','4h':'4h','1d':'1D','1w':'1W'};
 function renderTfs(){
   $('tfs').innerHTML=[...$('tf').options].map(o=>`<button type="button" class="${o.value===tf()?'on':''}" data-t="${o.value}" aria-pressed="${o.value===tf()}">${TFL[o.value]||o.text}</button>`).join('');
   $('tfs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('tf').value=b.dataset.t;$('tf').dispatchEvent(new Event('change'))});
 }
-function renderScanner(){renderChips();
+function renderScanner(){renderChips();try{renderCorr()}catch(e){}
   const rows=COINS.map(c=>({c,b:board[c]})).sort((x,y)=>{const r=o=>!o.b||!o.b.s||!o.b.s.seq?3:o.b.s.dir!=='none'?0:o.b.s.state==='wait'?1:2;
     const dx=r(x),dy=r(y);return dx-dy||((x.b&&x.b.s?x.b.s.dist:9)-(y.b&&y.b.s?y.b.s.dist:9))});
   $('scan').innerHTML=rows.map(({c,b})=>{
@@ -922,6 +931,7 @@ function renderScanner(){renderChips();
       else if(s.state==='counter')st='<span class="tag target">Zielgebiet</span>';
       else if(s.state==='wait'){st='<span class="tag wait">Warten</span>';ds=pctS(s.dist,1)}
       else if(s.gate==='conf'){st='<span class="tag mid">Struktur schwach</span>'}
+      else if(s.gate==='pull'){st='<span class="tag mid">Pullback</span>'}
       else if(s.gate==='against'){st='<span class="tag mid">Gegen Sequenz</span>'}
       else if(s.state==='in'){st='<span class="tag mid">CRV zu klein</span>'}
       else if(s.state==='unconf'){st='<span class="tag mid">A unbestätigt</span>';ds=pctS(s.dist,1)}
@@ -980,6 +990,7 @@ function renderHero(s,b,c){
     $('hsteps').innerHTML=['Noch nichts tun.','Schalte unter „Einstellungen“ den Alarm an (Alarm bis Quittieren).','Lass die App offen. Bei Erreichen der Zone zeigt sie dir die Schritte.'].map(t=>`<li>${t}</li>`).join('');$('hhow').hidden=false;return}
   if(s.gate==='conf'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone} (${fmt(Math.min(s.lvl(.5),s.lvl(.667)))} bis ${fmt(Math.max(s.lvl(.5),s.lvl(.667)))}), aber die Struktur ist noch zu schwach: erst ${s.conf} von mindestens 3 Bestätigungen. Nach der SK-Regel gibt es deshalb noch kein Signal. Warte, bis die Struktur steht.`);
     $('hplan').innerHTML='<button type="button" id="hlock" class="off">Struktur-Prüfung ausschalten (nicht SK-konform)</button>';$('hlock').onclick=()=>{$('st').value='lock';renderAll()};return}
+  if(s.gate==='pull'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber der Rücklauf war nur ein schneller Pullback: erst ${s.elapsed} Kerzen seit A, nötig sind ${s.minC}. Nach dem Tradebook ist das noch keine Korrektur. Warte noch etwa ${Math.max(1,s.minC-s.elapsed)} Kerzen.`);return}
   if(s.gate==='against'){set('wait','no','Kein Handel','Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.');return}
   if(s.state==='in'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Chance zu Risiko ist mit ${s.crv.toFixed(1)} zu 1 zu klein. Das System rät ab.`);return}
   if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
@@ -987,7 +998,7 @@ function renderHero(s,b,c){
 }
 function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar();renderAI()}catch(e){}
 
-  $('swv').textContent=$('sw').value;
+  $('swv').textContent=$('sw').value;$('cdv').textContent=$('cd').value;
   const b=cur();if(!b||!b.s){$('vm').textContent='LÄDT';return}
   const s=b.s,seq=s.seq,cs=b.candles;
   $('mauto').hidden=!(s.manual||s.manualInvalid);
@@ -1022,11 +1033,13 @@ function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar();renderAI()}
   const c=renderPos(s);renderRisk(s,c);renderMtf();renderZones(s);renderEntries(s);renderHero(s,b,c);draw(b);
 }
 function fmtQ(u){return u.toLocaleString('de-DE',{maximumFractionDigits:u>=100?2:u>=1?4:6})}
+const cost=p=>p*((+$('spr').value||0)/100);
 function renderPos(s){
+  $('sprv').textContent=(+$('spr').value||0).toFixed(2).replace('.',',');
   const acc=+$('acc').value||0,rk=+$('rk').value/100,mh=+$('mh').value;
   $('rkv').textContent=$('rk').value;$('mhv').textContent=$('mh').value;
   const d=s.side,E=s.entries,riskAmt=acc*rk,each=riskAmt/E.length,mmr=.0057;       // Erhaltungsmargin ca. 0,57 % (aus deiner Börsen-Ansicht abgeleitet)
-  const rows=E.map(x=>{const dist=Math.abs(x.e-x.sl),units=dist>0?each/dist:0;return{...x,dist,units,notional:units*x.e}});
+  const rows=E.map(x=>{const dist=Math.abs(x.e-x.sl)+cost(x.e),units=dist>0?each/dist:0;return{...x,dist,units,notional:units*x.e}});
   let units=rows.reduce((a,r)=>a+r.units,0);const avg=units?rows.reduce((a,r)=>a+r.units*r.e,0)/units:s.lv.entry;
   const stopDist=Math.max(...rows.map(r=>r.dist)),stopPct=stopDist/avg;
   let N=units*avg,mm=N*mmr,risk=riskAmt;
@@ -1071,11 +1084,12 @@ function renderPos(s){
     try{navigator.clipboard.writeText(t).then(()=>{$('ocopy').textContent='Kopiert'},()=>{$('ocopy').textContent='Nicht möglich'})}catch(e){$('ocopy').textContent='Nicht möglich'}};
   $('pdd').innerHTML='<dl>'+[['Strategie',s.multi?'Multi-Trade, 4 Einstiege':'1-Trade'],['Abstand zum Stop',pctS(stopPct)],['Nötige Anfangsmargin für '+L+'x',fmtU(Mini)+' USDT'],['Empfohlene Margin',fmtU(Mrec)+' USDT'],['Erhaltungsmargin (geschätzt)',fmtU(mm)+' USDT'],['Break-even-Marke (1R)',fmt(s.lv.entry+d*Math.abs(s.lv.entry-s.lv.sl))],['Doppelter Profit (2R)',fmt(s.lv.entry+d*2*Math.abs(s.lv.entry-s.lv.sl))]].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>'
     +(s.multi?`<div class="tw" style="margin-top:10px"><table><thead><tr><th>Level</th><th>Einstieg</th><th>Stop</th><th>Größe USDT</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${String(r.r).replace('.',',')}</td><td>${fmt(r.e)}</td><td>${fmt(r.sl)}</td><td>${fmtU(r.notional)}</td></tr>`).join('')}</tbody></table></div>`:'');
-  let t=(s.multi?'Multi-Trade: Das Risiko wird gleichmäßig auf die vier Einstiege verteilt. ':'')+'Position = Risiko ÷ Abstand zum Stop. Margin und Liquidationspreis sind Schätzungen für '+(iso?'isolierte Margin':'Cross-Margin (mit deinem ganzen Konto als Sicherheit)')+'. Die echte Liquidation hängt von deiner Börse, den Gebühren und der Risikostufe ab. Prüfe den Wert dort.';
+  let t=(s.multi?'Multi-Trade: Das Risiko wird gleichmäßig auf die vier Einstiege verteilt. ':'')+'Position = Risiko ÷ (Abstand zum Stop + Spread und Gebühren von '+(+$('spr').value||0).toFixed(2).replace('.',',')+' %). Margin und Liquidationspreis sind Schätzungen für '+(iso?'isolierte Margin':'Cross-Margin (mit deinem ganzen Konto als Sicherheit)')+'. Die echte Liquidation hängt von deiner Börse, den Gebühren und der Risikostufe ab. Prüfe den Wert dort.';
   if(capped)t+=' Die Position wurde verkleinert, weil die Margin dein Konto übersteigen würde.';
   if(eff>5)t+=' Hoher Hebel: Schon kleine Gegenbewegungen und Gebühren belasten das Konto stark.';
   t+=' Break-even: Den Stop nicht nachziehen, außer auf Break-even. Die Marken 1R und 2R sind meine Auslegung.';
   $('pn').textContent=t;
+  {const be=s.lv.entry+s.side*cost(s.lv.entry);const el=$('tmbe');if(el)el.innerHTML=`<b>Break-even-Stop mit Spread:</b> ${fmt(be)} statt genau ${fmt(s.lv.entry)} (Aufschlag ${fmt(cost(s.lv.entry))}). Sonst wirst du am Einstieg mit einem kleinen Minus ausgestoppt.`}
   const out={fR:risk,safe:Math.round(eff)||1,capped,maxByLiq:liqState==='ok'?2:liqState==='warn'?1:0,acc,rk:byM?risk/acc:rk,fN:N,M,liq,iso,Mrec,units,liqState,L:Math.round(eff)||1,byM};window.lastPos=out;return out;
 }
 function renderRisk(s,c){
@@ -1242,6 +1256,7 @@ function renderEntries(s){renderEdge();renderOsc();
     const lo=Math.min(x.lvl(.5),x.lvl(.667)),hi=Math.max(x.lvl(.5),x.lvl(.667));
     let st,note='';
     if(x.state==='counter'){st=['Gegen-Handel möglich','target'];note='Das Gewinnziel der Sequenz ist erreicht. Ein Gegen-Handel ist riskanter.'}
+    else if(x.gate==='pull'){st=['Pullback, zu schnell','mid'];note=`Der Kurs steht in der Zone, aber erst ${x.elapsed} Kerzen nach A (nötig ${x.minC}). Ein schneller Pullback ist nach dem Tradebook noch keine Korrektur.`}
     else if(x.gate==='against'){st=['Gegen die Sequenz','mid'];note='Die andere Richtung hat gerade das Signal. Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.'}
     else if(x.gate==='conf'){st=['Gesperrt: Struktur '+x.conf+' von 3','mid'];note=`Der Kurs steht in der Zone, aber die SK-Regel verlangt mindestens 3 Struktur-Bestätigungen. Es sind erst ${x.conf}. Deshalb gibt es kein Signal.`}
     else if(x.dir!=='none'){st=['Jetzt möglich',cls];note='Der Kurs steht in der Zone. Das System erlaubt den Einstieg.'}
@@ -1262,13 +1277,13 @@ function renderZones(s){
     const x=by[d],name=d===1?'Long':'Short',cls=d===1?'long':'short';
     if(!x)return `<div class="rrow"><div><b>${name}-Einstieg</b></div><span class="tag mid">Keine Sequenz</span><span class="d">Aktuell gibt es keine gültige ${name}-Sequenz.</span></div>`;
     const lo=Math.min(x.lvl(.5),x.lvl(.667)),hi=Math.max(x.lvl(.5),x.lvl(.667));
-    const st=x.gate==='against'?['Gegen die Sequenz','mid']:x.gate==='conf'?['Struktur zu schwach','mid']:x.state==='counter'?['Gegentrade-Lage','target']:x.dir!=='none'?['Signal',cls]:x.state==='in'?['In der Zone','wait']:x.state==='wait'?['Warten','wait']:x.state==='unconf'?['A unbestätigt','mid']:['Ungültig','mid'];
+    const st=x.gate==='against'?['Gegen die Sequenz','mid']:x.gate==='pull'?['Pullback','mid']:x.gate==='conf'?['Struktur zu schwach','mid']:x.state==='counter'?['Gegentrade-Lage','target']:x.dir!=='none'?['Signal',cls]:x.state==='in'?['In der Zone','wait']:x.state==='wait'?['Warten','wait']:x.state==='unconf'?['A unbestätigt','mid']:['Ungültig','mid'];
     const txt=x.state==='wait'||x.state==='unconf'?'Noch '+pctS(x.dist,1)+' bis zur Zone.':x.state==='beyond'?'Korrekturlevel deutlich überschritten.':x.state==='in'?(x.dir!=='none'?'Einstieg erlaubt, CRV '+x.crv.toFixed(1)+' : 1.':'CRV unter dem Mindest-CRV.'):'Zielgebiet der Sequenz erreicht.';
     return `<div class="rrow"><div><b>${name}-Einstiegsbereich</b><span class="val">${fmt(lo)} bis ${fmt(hi)}</span></div><span class="tag ${st[1]}">${st[0]}</span><span class="d">Level 0,5 bis 0,667 der Strecke 0-A. ${txt}</span></div>`};
   $('zones').innerHTML=row(1)+row(-1);
 }
 /* ---------- Zeitebenen-Check ---------- */
-const PARENT={'15m':'1h','1h':'4h','4h':'1d','1d':'1w'},CHILD={'1d':'4h','4h':'1h','1h':'15m'};
+const PARENT={'15m':'30m','30m':'1h','1h':'4h','4h':'1d','1d':'1w'},CHILD={'1d':'4h','4h':'1h','1h':'30m','30m':'15m'};   // Tradebook: untergeordnet 30-Minuten-Chart
 let mtf={};
 async function refreshMtf(){
   if(custom)return;const c=sel,t=tf(),out={};
@@ -1771,10 +1786,10 @@ async function btCoin(c,t,prog){
       const key=[x.dir,x.state==='counter'?'g':'h',x.seq.O.p,x.seq.A.p].join('|');if(seen.has(key))continue;seen.add(key);
       const L=x.dir==='long',en=x.lv.entry,sl=x.lv.sl,tp=x.lv.tp1,risk=Math.abs(en-sl),rew=Math.abs(tp-en);
       if(!(risk>0)||!(rew>0))continue;
-      let res='offen',R=0;
+      const cA=en*((+$('spr').value||0)/100),cR=cA/risk;let res='offen',R=0;
       for(let j=i+1;j<Math.min(cs.length,i+201);j++){
         const stop=L?cs[j].l<=sl:cs[j].h>=sl,hit=L?cs[j].h>=tp:cs[j].l<=tp;
-        if(stop){res='Stop';R=-1;break}if(hit){res='Ziel';R=rew/risk;break}}
+        if(stop){res='Stop';R=-1-cR;break}if(hit){res='Ziel';R=(rew-cA)/risk;break}}
       trades.push({i,t:cs[i].t,coin:c,dir:x.dir,res,R,crv:rew/risk});
     }
   }
@@ -1914,6 +1929,7 @@ $('jc_save').onclick=()=>{
   if(L?!(t.sl<t.entry):!(t.sl>t.entry)){$('jc_msg').textContent='Die Verlustgrenze muss bei Long unter und bei Short über dem Einstieg liegen.';return}
   if(t.tp&&(L?!(t.tp>t.entry):!(t.tp<t.entry))){$('jc_msg').textContent='Das Gewinnziel muss bei Long über und bei Short unter dem Einstieg liegen.';return}
   const ls=lockState();if(ls.on&&!confirm('Die Sperre ist aktiv ('+ls.why[0]+'). Trade trotzdem eintragen?'))return;
+  {const w=corrWarn(t);if(w&&!confirm('Hinweis zur Korrelation: '+w+' Trotzdem eintragen?'))return}
   JR.push(t);JSAVE();$('jform').hidden=true;$('jc_nt').value='';renderJournal();
 };
 $('jexp').onclick=async()=>{
@@ -1935,7 +1951,7 @@ function sqPhase(s){
   if(s.state==='counter')return 'Zielgebiet erreicht, Gegentrade möglich';
   if(s.state==='unconf')return 'A ist noch unbestätigt (Rücklauf unter 38,2 %)';
   if(s.state==='wait')return 'Rücklauf läuft, bis zur Einstiegszone noch '+pctS(s.dist,1);
-  if(s.state==='in')return s.dir!=='none'?'Kurs in der Einstiegszone, Signal aktiv':s.gate==='conf'?'Kurs in der Einstiegszone, Struktur noch zu schwach':s.gate==='against'?'Kurs in der Einstiegszone, aber gegen die stärkere Sequenz':'Kurs in der Einstiegszone, CRV noch zu klein';
+  if(s.state==='in')return s.dir!=='none'?'Kurs in der Einstiegszone, Signal aktiv':s.gate==='conf'?'Kurs in der Einstiegszone, Struktur noch zu schwach':s.gate==='pull'?'Kurs in der Zone, aber erst '+s.elapsed+' Kerzen seit A (Pullback, nötig '+s.minC+')':s.gate==='against'?'Kurs in der Einstiegszone, aber gegen die stärkere Sequenz':'Kurs in der Einstiegszone, CRV noch zu klein';
   return s.broken?'Korrektur lief schon durch die Zone, Setup ungültig':'Kurs über die Zone hinaus, zu spät';
 }
 function sqOf(c,t){const b=board[c];return b&&b.s&&b.s.seq?b.s.seq.d:0}
@@ -1946,7 +1962,7 @@ function renderSeqBar(){
   const alt=s.alt&&s.alt.seq?s.alt:null,nm=custom?custom.name:sel;
   let txt;
   if(!s.seq)txt=`<b>${nm} ${tf()}:</b> Keine gültige Sequenz. Es gibt aktuell weder eine bullische noch eine bärische SK-Sequenz, also auch keinen Einstieg.`;
-  else txt=`<b>${nm} ${tf()}:</b> ${v[3]}. 0 → A: ${fmt(s.seq.O.p)} → ${fmt(s.seq.A.p)}. ${sqPhase(s)}.`+(alt?` Daneben läuft eine kleinere <b>${SQ[alt.seq.d][0].toLowerCase()}</b> Gegen-Sequenz.`:'');
+  else txt=`<b>${nm} ${tf()}:</b> ${v[3]}. 0 → A: ${fmt(s.seq.O.p)} → ${fmt(s.seq.A.p)}. ${sqPhase(s)}.`+(s.ext==='ueber'?' <b>100-%-Extension überschritten:</b> das Zielgebiet (161,8 bis 200 %) ist sehr wahrscheinlich.':s.ext==='abprall'?' <b>An der 100-%-Extension abgeprallt:</b> Wiedereinstieg über die B-C-Korrektur prüfen.':'')+(alt?` Daneben läuft eine kleinere <b>${SQ[alt.seq.d][0].toLowerCase()}</b> Gegen-Sequenz.`:'');
   let m='';
   if(!custom){
     const one=(lab,o)=>o&&o.tf&&o.s?`<span class="${o.s.seq?SQ[o.s.seq.d][2]:''}">${lab} ${o.tf}: ${o.s.seq?SQ[o.s.seq.d][1]+' '+SQ[o.s.seq.d][0].toLowerCase():'keine Sequenz'}</span>`:'';
@@ -2023,7 +2039,7 @@ function aiCtx(c){
   const hi=CAL.ev.filter(e=>e.imp==='High'&&e.t>now-36e5&&e.t<now+864e5).slice(0,4).map(e=>({termin:calTitle(e.title),waehrung:e.cur,in_min:Math.round((e.t-now)/6e4)}));
   const news=NEWS.items.slice(0,5).map(n=>n.title);
   const ctx={coin:c,zeitebene:tf(),preis:aiRound(x.last),
-    sequenz:seq?{richtung:seq.d===1?'bullisch (Long-Setup)':'bärisch (Short-Setup)',punkt0:aiRound(seq.O.p),punktA:aiRound(seq.A.p),punktB:seq.B?aiRound(seq.B.p):null,rücklauf_tiefe_max:aiRound(x.depth),rücklauf_aktuell:aiRound(x.pos),A_bestätigt:!!x.confirmed,phase:x.state,setup_ungültig_weil_B_zu_tief:!!x.broken,struktur_bestätigungen:seq.conf,art:seq.kind}:null,
+    sequenz:seq?{richtung:seq.d===1?'bullisch (Long-Setup)':'bärisch (Short-Setup)',punkt0:aiRound(seq.O.p),punktA:aiRound(seq.A.p),punktB:seq.B?aiRound(seq.B.p):null,rücklauf_tiefe_max:aiRound(x.depth),rücklauf_aktuell:aiRound(x.pos),A_bestätigt:!!x.confirmed,phase:x.state,extension_100:x.ext==='ueber'?'überschritten':x.ext==='abprall'?'abgeprallt':'nicht erreicht',setup_ungültig_weil_B_zu_tief:!!x.broken,struktur_bestätigungen:seq.conf,art:seq.kind}:null,
     signal:{aktiv:x.dir!=='none',richtung:x.dir,einstieg:aiRound(x.lv&&x.lv.entry),stop:aiRound(x.lv&&x.lv.sl),ziel1:aiRound(x.lv&&x.lv.tp1),crv:aiRound(x.crv),gesperrt_durch:x.gate||null},
     einstiegszone:seq&&x.lvl?[aiRound(x.lvl(.5)),aiRound(x.lvl(.667))]:null,
     zeitebenen:{größere:mtf.parent&&mtf.parent.s?(mtf.parent.s.seq?(mtf.parent.s.seq.d===1?'bullisch':'bärisch'):'keine Sequenz'):null,kleinere:mtf.child&&mtf.child.s?(mtf.child.s.seq?(mtf.child.s.seq.d===1?'bullisch':'bärisch'):'keine Sequenz'):null,tf_größere:mtf.parent&&mtf.parent.tf,tf_kleinere:mtf.child&&mtf.child.tf},
@@ -2191,6 +2207,32 @@ function lrnImport(ev){
 }
 setInterval(()=>{if($('ail').value==='week'&&aiOn()&&!LRN.busy){const st=lrnStats();if(st.n-(LRN.meta.n||0)>=10&&Date.now()-(LRN.meta.t||0)>7*864e5)lrnDerive(true)}},3600000);
 setInterval(lrnLoad,30*60000);lrnLoad();
+
+/* ---------- Korrelation (Diversifikation, Tradebook: Risiko verteilen) ---------- */
+function pearson(a,b){const n=a.length,ma=a.reduce((x,y)=>x+y,0)/n,mb=b.reduce((x,y)=>x+y,0)/n;let sa=0,sb=0,sab=0;for(let i=0;i<n;i++){const da=a[i]-ma,db=b[i]-mb;sa+=da*da;sb+=db*db;sab+=da*db}return sa>0&&sb>0?sab/Math.sqrt(sa*sb):null}
+function corrCalc(){
+  const R={};COINS.forEach(c=>{const cs=board[c]&&board[c].candles;if(cs&&cs.length>=30){const a=cs.slice(-101);R[c]=a.slice(1).map((k,i)=>Math.log(k.c/a[i].c))}});
+  const M={};COINS.forEach(a=>{M[a]={};COINS.forEach(b=>M[a][b]=a===b?1:(R[a]&&R[b]&&R[a].length===R[b].length?pearson(R[a],R[b]):null))});return M;
+}
+function corrOf(a,b){try{return corrCalc()[a][b]}catch(e){return null}}
+function renderCorr(){
+  const el=$('corrp');if(!el)return;const M=corrCalc(),have=COINS.filter(c=>M[c][c]!=null&&COINS.some(o=>o!==c&&M[c][o]!=null));
+  if(have.length<3){el.innerHTML='<h2>Korrelation der Coins</h2><p class="note">Noch zu wenige Kursdaten.</p>';return}
+  const col=v=>v==null?'rgba(129,151,189,.15)':v>=.8?'rgba(255,150,60,.85)':v>=.5?'rgba(255,203,92,.55)':v>=.2?'rgba(129,151,189,.35)':v>-.2?'rgba(129,151,189,.15)':'rgba(77,227,255,.6)';
+  let h=`<div class="cm" style="grid-template-columns:34px repeat(${have.length},1fr)"><div class="h"></div>${have.map(c=>`<div class="h">${c}</div>`).join('')}`;
+  have.forEach(a=>{h+=`<div class="h" style="justify-content:flex-end;padding-right:3px">${a}</div>`+have.map(b=>{const v=M[a][b];return `<div style="background:${a===b?'rgba(129,151,189,.08)':col(v)}" title="${a} / ${b}">${v==null?'':a===b?'':(v*100).toFixed(0)}</div>`}).join('')});h+='</div>';
+  const pairs=[];for(let i=0;i<have.length;i++)for(let j=i+1;j<have.length;j++)if(M[have[i]][have[j]]!=null)pairs.push([have[i],have[j],M[have[i]][have[j]]]);
+  pairs.sort((x,y)=>y[2]-x[2]);const hi=pairs.filter(p=>p[2]>=.8).length,avg=pairs.reduce((a,p)=>a+p[2],0)/pairs.length,neg=pairs.filter(p=>p[2]<-.2);
+  el.innerHTML=`<h2>Korrelation der Coins <span class="pill" style="margin-left:6px;vertical-align:middle">${tf()}</span></h2>${h}
+   <p class="note" style="margin-top:8px;color:var(--fg)">Durchschnitt ${(avg*100).toFixed(0)} %. ${hi} von ${pairs.length} Paaren bewegen sich fast gleich (80 % oder mehr, orange). Zwei Trades in dieselbe Richtung auf solchen Coins sind faktisch <b>ein</b> größeres Risiko.${neg.length?' Gegenläufig: '+neg.slice(-3).map(p=>p[0]+'/'+p[1]).join(', ')+' (Absicherung möglich).':' Echte Gegenläufer gibt es bei Krypto kaum, Streuung hilft hier nur begrenzt.'}</p>
+   <p class="note" style="margin-top:6px">Stärkste Paare: ${pairs.slice(0,3).map(p=>p[0]+'/'+p[1]+' '+(p[2]*100).toFixed(0)+' %').join(', ')}. Berechnet aus den Schlusskursen der letzten 100 Kerzen (${tf()}). Tradebook: Risiko auf viele, möglichst nicht gleichlaufende Märkte verteilen.</p>`;
+}
+function corrWarn(t){
+  const out=[];JR.filter(o=>o.status==='offen'&&o.dir===t.dir&&o.coin!==t.coin).forEach(o=>{const v=corrOf(o.coin,t.coin);if(v!=null&&v>=.8)out.push({o,v})});
+  if(!out.length)return'';
+  const sum=(+t.risk||0)+out.reduce((a,x)=>a+(x.o.risk||0),0),acc=+$('acc').value||0;
+  return out.map(x=>`${t.coin} ${t.dir==='long'?'Long':'Short'} läuft zu ${(x.v*100).toFixed(0)} % wie dein offener ${x.o.coin}-Trade`).join('; ')+`. Zusammen riskierst du faktisch ${fmtU(sum)} USDT${acc?' ('+(sum/acc*100).toFixed(1).replace('.',',')+' % des Kontos)':''} in dieselbe Richtung.`;
+}
 /* ---------- Krypto-News ---------- */
 const NEWS={items:[],src:'',ts:0,f:store.get('sk_newsf','all'),open:null,busy:false};
 const nesc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2237,11 +2279,11 @@ function setTab(t){TAB=t;store.set('sk_tab',t);document.body.dataset.tab=t;
   window.scrollTo(0,0);requestAnimationFrame(()=>{try{draw(cur());draw1m()}catch(e){}});if(t==='liq'){renderLiq();loadLiq();renderLive()}if(t==='more'){renderLrn()}if(t==='cal'){renderCal();renderMk();renderNews();if(!CAL.ts)loadCal();if(!MK.ts)loadMk();if(!NEWS.ts)loadNews()}}
 document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 COINS.forEach(c=>$('coin').add(new Option(c+' / USDT',c)));
-(LOCAL||DIRECT?[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
+(LOCAL||DIRECT?[['15m','15 Min'],['30m','30 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag'],['1w','1 Woche']]:[['15m','15 Min'],['30m','30 Min'],['1h','1 Std'],['4h','4 Std'],['1d','1 Tag']]).forEach(([v,t])=>$('tf').add(new Option(t,v)));
 $('tf').value='4h';renderTfs();
 $('coin').addEventListener('change',()=>pick($('coin').value));
 $('tf').addEventListener('change',()=>{ZM.n=null;ZM.off=0;renderTfs();board={};custom=null;picking=0;hint('');mtf={};renderMain();renderScanner();scan().then(refreshMtf)});
-['sw','sm','pp','ps','mc','st'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
+['sw','sm','pp','ps','mc','st','cd','spr'].forEach(id=>$(id).addEventListener('input',()=>{COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}));
 ['acc','rk','mh','dl','hr','mm','lm','lf','mo','sz'].forEach(id=>$(id).addEventListener('input',renderMain));
 $('sz').addEventListener('change',()=>{if($('sz').value==='mh'){if(!$('mo').value&&window.lastPos)$('mo').value=(Math.ceil(window.lastPos.Mrec*100)/100).toFixed(2);if(window.lastPos&&$('lm').value!=='fix')$('lm').value='fix'}renderMain()});
 function snd(){$('snd').textContent=sound?'Ton an':'Ton aus';$('snd').className=sound?'':'off'}
