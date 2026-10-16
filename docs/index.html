@@ -70,6 +70,7 @@ u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--l
 .lrn-t{width:100%;border-collapse:collapse;font:500 12.5px var(--body)}.lrn-t th{font:700 10.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px 6px 0}.lrn-t td{padding:7px 8px 7px 0;border-top:1px solid var(--line)}
 .les{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font:400 13.5px/1.45 var(--body)}.les input{margin-top:4px}.les small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}.les button{padding:3px 10px;font-size:11px;margin-left:auto}
 .cm{display:grid;gap:2px;font:600 9.5px var(--mono);margin-top:8px}.cm div{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:3px;color:#fff}.cm .h{color:var(--muted);background:none;aspect-ratio:auto;font-size:9px}
+.chn{margin-top:10px;font:400 13px/1.5 var(--body);color:var(--muted)}.chn b{color:var(--fg)}.chn button{margin:3px 4px 0 0;padding:4px 10px;font-size:11px}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -698,7 +699,7 @@ function analyseDir(cs,key,wantD,useManual){
   s.depth=seq.B?(d*(A.p-seq.B.p))/R:0;           // tiefste Korrektur bisher (Punkt B)
   s.pos=d*(A.p-last)/R;                          // aktuelle Korrekturtiefe
   s.confirmed=s.depth>=.382;                     // A ist erst nach Überschreiten des 0,382er Levels bestätigt
-  s.broken=s.depth>.667+.02;                      // Punkt B lag schon hinter der Einstiegszone: Korrekturlevel überschritten, Setup ungültig (Tradebook)
+  s.broken=s.depth>.786+.1*a/R;                   // Korrektur hat das Stop-Level (0,786) schon überschritten: Setup ungültig (Tradebook: Korrekturlevel deutlich überschritten)
   s.state=!s.confirmed?'unconf':(s.broken||s.pos>.667+.02)?'beyond':s.pos<.5?'wait':'in';
   s.Bp=s.state==='in'&&seq.B?seq.B.p:s.lvl(.618);
   /* 100-%-Extension (Tradebook): überschritten = Zielgebiet sehr wahrscheinlich, abgeprallt = Wiedereinstieg über die B-C-Korrektur */
@@ -963,7 +964,7 @@ function patSVG(dir){
 }
 const IC={up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',wt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M9 5v14M15 5v14"/></svg>',no:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>'};
 function renderAll(){COINS.forEach(analyseCoin);if(custom)custom.s=analyse(custom.candles);renderMain();renderScanner()}
-function renderHero(s,b,c){
+function renderHero0(s,b,c){
   const H=$('hero'),coin=custom?custom.name:sel+' / USDT';
   $('hcoin').textContent=coin+' · '+tf();
   const set=(cls,ico,word,text)=>{H.className='hero '+cls;$('hico').innerHTML=IC[ico];$('hword').textContent=word;$('htext').textContent=text};
@@ -993,8 +994,31 @@ function renderHero(s,b,c){
   if(s.gate==='pull'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber der Rücklauf war nur ein schneller Pullback: erst ${s.elapsed} Kerzen seit A, nötig sind ${s.minC}. Nach dem Tradebook ist das noch keine Korrektur. Warte noch etwa ${Math.max(1,s.minC-s.elapsed)} Kerzen.`);return}
   if(s.gate==='against'){set('wait','no','Kein Handel','Gegen die Sequenz zu handeln ist riskanter. Das System rät ab.');return}
   if(s.state==='in'){set('wait','no','Kein Handel',`Der Kurs steht in der ${zone}, aber die Chance zu Risiko ist mit ${s.crv.toFixed(1)} zu 1 zu klein. Das System rät ab.`);return}
-  if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs hat sich noch nicht weit genug zurückgezogen. Warte ab.');return}
-  set('wait','no','Zu spät','Der Kurs ist zu weit gelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
+  if(s.state==='unconf'){set('wait','wt','Noch unklar','Das Muster ist noch nicht bestätigt. Der Kurs muss sich erst weiter zurückziehen (mehr als 38,2 % der Strecke 0 bis A). Erst dann gilt A, und die '+zone+' wird interessant.');
+    $('hmeter').hidden=false;$('hml').textContent='Abstand zur '+zone;$('hmv').textContent=pctS(s.dist,1);$('hmf').style.width=Math.round(Math.max(4,Math.min(100,100*(1-s.dist/.08))))+'%';
+    $('hplan').innerHTML=plan('Möglicher Einstieg');return}
+  set('wait','no','Zu spät',s.broken?'Der Rücklauf war schon bis hinter die Verlustgrenze gelaufen. Nach dem Tradebook ist dieses Muster damit ungültig. Warte auf das nächste Muster.':'Der Kurs ist durch die '+zone+' hinausgelaufen. Dieser Einstieg ist vorbei. Warte auf das nächste Muster.');
+}
+/* Nächste Chancen: wenn dieser Coin gerade nicht passt, zeigt die App, wo es jetzt besser aussieht */
+function chancen(){
+  const out=[];COINS.forEach(c=>{if(c===sel&&!custom)return;const x=board[c]&&board[c].s;if(!x||!x.seq)return;
+    let rank=9,txt='';const d=x.seq.d===1?'Long':'Short';
+    if(x.dir!=='none'){rank=0;txt=d+'-Signal jetzt'}
+    else if(x.state==='in'){rank=1;txt='in der Zone'+(x.gate==='conf'?' (Struktur schwach)':x.gate==='pull'?' (Pullback)':x.gate==='against'?' (gegen Sequenz)':'')}
+    else if((x.state==='wait'||x.state==='unconf')&&x.dist<=.03){rank=2;txt='noch '+pctS(x.dist,1)+' bis zur Zone'}
+    if(rank<9)out.push({c,rank,d,txt,dist:x.dist||0})});
+  return out.sort((a,b)=>a.rank-b.rank||a.dist-b.dist).slice(0,5);
+}
+function renderHero(s,b,c){
+  renderHero0(s,b,c);
+  const el=$('hplan');if(!el||s.dir!=='none')return;
+  const ch=chancen(),ct=!custom&&mtf&&mtf.child&&mtf.child.s&&mtf.child.s.seq?mtf.child:null;
+  let h='';
+  if(ch.length)h+='<div class="chn"><b>Besser jetzt in diesem Zeitrahmen ('+tf()+'):</b> '+ch.map(x=>`<button type="button" class="off" data-c="${x.c}">${x.c} ${x.d} · ${x.txt}</button>`).join(' ')+'</div>';
+  else h+='<div class="chn">Aktuell gibt es bei keinem der anderen Coins ein Signal oder eine Zone in Reichweite ('+tf()+'). Das ist normal. Es wird ruhig gewartet.</div>';
+  if(ct&&ct.s.state!=='beyond'){const cx=ct.s,cd=cx.seq.d===1?'bullisch':'bärisch';h+=`<div class="chn"><b>Kleinere Ebene ${ct.tf}:</b> ${cd} · ${cx.dir!=='none'?'<span style="color:var(--long)">Signal</span>':cx.state==='in'?'Kurs in der Zone':cx.state==='wait'||cx.state==='unconf'?'noch '+pctS(cx.dist,1)+' bis zur Zone':'zu spät'}. Wechsle oben auf ${ct.tf} für Details.</div>`}
+  el.insertAdjacentHTML('beforeend',h);
+  el.querySelectorAll('.chn [data-c]').forEach(bn=>bn.onclick=()=>pick(bn.dataset.c));
 }
 function renderMain(){try{$('btcoin').textContent=sel;renderSeqBar();renderAI()}catch(e){}
 
