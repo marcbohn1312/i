@@ -8,21 +8,31 @@ wechselt und bei Ausfall automatisch umschaltet.
       └──────► Endpunkt B (10.10.2.0/24)   (immer nur einer aktiv)
 ```
 
-## 1. Konfigurationen erzeugen
+## Schnellstart: automatische Installation
+```
+./install.sh all --a root@vpn-a.example.com --b root@vpn-b.example.com
+```
+Erzeugt die Schlüssel, richtet beide Server per SSH ein (Key-Login nötig, Nicht-root braucht sudo ohne Passwort),
+installiert auf diesem Rechner WireGuard, Profile, den Befehl `vpn2` und einen Menü-Eintrag.
+Optional: `sudo systemctl enable --now vpn2-watch` für Failover im Hintergrund. `--dry-run` zeigt nur die Schritte.
+Nur den Client installieren: `./install.sh client`.
+
+## Manuell
+### 1. Konfigurationen erzeugen
 ```
 python3 gen_configs.py --a vpn-a.example.com:51820 --b vpn-b.example.com:51820
 ```
 Erzeugt in `out/` Schlüssel + `server-a/b.conf` und `client-a/b.conf` (keine Abhängigkeiten, auch ohne `wg`).
 **Nicht committen** – `out/` und `*.conf` sind in `.gitignore`.
 
-## 2. Server einrichten (je einer pro Endpunkt, Debian/Ubuntu, root)
+### 2. Server einrichten (je einer pro Endpunkt, Debian/Ubuntu, root)
 ```
 ./server-setup.sh server-a.conf     # auf Server A
 ./server-setup.sh server-b.conf     # auf Server B
 ```
 UDP-Port in der Firewall freigeben.
 
-## 3. App auf dem Client (Linux/macOS, `wireguard-tools` nötig)
+### 3. App auf dem Client (Linux/macOS, `wireguard-tools` nötig)
 Die `client-*.conf` nach `app/profiles/` kopieren, dann:
 ```
 sudo python3 app/vpn_app.py                 # GUI (tkinter)
