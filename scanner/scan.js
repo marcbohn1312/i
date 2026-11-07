@@ -26,8 +26,8 @@ async function ntfy(title,body,prio,tags){
   await p.addInitScript(()=>{window.WebSocket=function(){throw new Error('no ws')};try{localStorage.setItem('sk_intro','1')}catch(e){}});
   p.on('pageerror',e=>console.log('Seitenfehler:',e.message));
   await p.goto(APP);await p.waitForTimeout(1500);
-  const sigs=await p.evaluate(async tfs=>{
-    const out=[];
+  const sigs=await p.evaluate(async ({tfs,led})=>{
+    const out=[];LRN.led=led;                /* Lernspeicher für die Erfahrungs-Bewertung */
     for(const tf of tfs){
       for(const c of COINS){
         try{
@@ -40,13 +40,14 @@ async function ntfy(title,body,prio,tags){
             const kind=x.state==='counter'?'Gegentrade':x.seq.kind==='neu'?'Haupt':x.seq.kind.indexOf('Wieder')===0?'Wiedereinstieg':x.seq.kind.indexOf('verl')===0?'Verlängert':'Manuell';
             const e={coin:c,tf,dir:x.dir,kind,entry:x.lv.entry,sl:x.lv.sl,tp1:x.lv.tp1,crv:x.crv};
             let ed=null;try{ed=await edgeCheck(c,x,e)}catch(err){}
-            out.push({key,e,ed,fmt:{entry:fmt(e.entry),sl:fmt(e.sl),tp1:fmt(e.tp1)}});
+            let ex=null;try{const r=expStats({tf,dir:x.dir,kind,crv:x.crv});ex={v:r.verdict,txt:expText(r)}}catch(err){}
+            out.push({key,e,ed,ex,fmt:{entry:fmt(e.entry),sl:fmt(e.sl),tp1:fmt(e.tp1)}});
           }
         }catch(err){console.log('Fehler bei',c,tf,String(err&&err.code||err))}
       }
     }
     return out;
-  },TFS);
+  },{tfs:TFS,led:led.entries.filter(e=>e.status==='Ziel'||e.status==='Stop')});
   /* Lernspeicher: offene Signale auswerten (Stop zuerst, wenn beides in derselben Kerze) */
   const open=led.entries.filter(e=>e.status==='offen');
   if(open.length){
@@ -78,7 +79,7 @@ async function ntfy(title,body,prio,tags){
       fac:{htf:f.some(x=>/Übergeordnete/.test(x)),liq:f.some(x=>/Liquidit/.test(x)),rsi:f.some(x=>/Überkauft|Überverkauft/.test(x)),poc:f.some(x=>/Point of Control/.test(x))},status:'offen',R:0})}
     const L=s.e.dir==='long',ed=s.ed&&s.ed.n;
     const title=(ed?'★ '+(ed>4?'Fünffacher':ed>3?'Vierfacher':ed>2?'Dreifacher':'Doppelter')+' Vorteil: ':'')+(L?'KAUFEN ':'VERKAUFEN ')+s.e.coin+' ('+s.e.tf+')';
-    const body=`${s.e.coin}/USDT ${s.e.tf} · ${s.e.kind}\nEinstieg ${s.fmt.entry}\nVerlustgrenze ${s.fmt.sl}\nGewinnziel ${s.fmt.tp1}\nChance zu Risiko ${(+s.e.crv).toFixed(1)} zu 1`+(ed?'\n★ '+s.ed.f.join('\n★ '):'');
+    const body=`${s.e.coin}/USDT ${s.e.tf} · ${s.e.kind}\nEinstieg ${s.fmt.entry}\nVerlustgrenze ${s.fmt.sl}\nGewinnziel ${s.fmt.tp1}\nChance zu Risiko ${(+s.e.crv).toFixed(1)} zu 1`+(s.ex&&s.ex.v!=='zuwenig'?'\n'+s.ex.txt:'')+(ed?'\n★ '+s.ed.f.join('\n★ '):'');
     await ntfy(title,body,'urgent',L?'chart_with_upwards_trend':'chart_with_downwards_trend');sent++;
   }
   if(first){st.started=Date.now();await ntfy('Börsensystem nach SK: Hintergrund-Alarm aktiv','Der Scanner läuft jetzt alle paar Minuten in deinem GitHub und meldet neue SK-Signale ('+TFS.join(', ')+').','default','white_check_mark')}
