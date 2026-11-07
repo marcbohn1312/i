@@ -71,7 +71,14 @@ u.sq{text-decoration:none;margin-left:5px;font-size:11px}u.sq.long{color:var(--l
 .les{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font:400 13.5px/1.45 var(--body)}.les input{margin-top:4px}.les small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}.les button{padding:3px 10px;font-size:11px;margin-left:auto}
 .cm{display:grid;gap:2px;font:600 9.5px var(--mono);margin-top:8px}.cm div{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:3px;color:#fff}.cm .h{color:var(--muted);background:none;aspect-ratio:auto;font-size:9px}
 .chn{margin-top:10px;font:400 13px/1.5 var(--body);color:var(--muted)}.chn b{color:var(--fg)}.chn button{margin:3px 4px 0 0;padding:4px 10px;font-size:11px}
-.chn.exp{border-left:3px solid var(--muted);padding-left:10px}.chn.exp.long{border-color:var(--long)}.chn.exp.short{border-color:var(--short)}.chn.exp b{font:600 13px/1.5 var(--body,system-ui,sans-serif);text-align:left;display:block;white-space:normal}
+.chn{display:block;text-align:left}.chn b{display:block;font:600 13px/1.4 var(--body);color:var(--fg);text-align:left;margin:0 0 6px;white-space:normal}
+.chn button{display:inline-block;width:auto;height:auto;min-height:0;border-radius:999px;font:500 11px/1.3 var(--body);letter-spacing:0;text-transform:none;text-align:left;white-space:normal;padding:6px 11px;margin:0 6px 6px 0}
+.chn.exp{border-left:3px solid var(--muted);padding:2px 0 2px 12px}.chn.exp.long{border-color:var(--long)}.chn.exp.short{border-color:var(--short)}
+.chn.exp .vb{display:inline-block;font:700 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--fg);margin-bottom:6px}
+.chn.exp.long .vb{background:rgba(52,230,160,.16);color:var(--long)}.chn.exp.short .vb{background:rgba(255,77,125,.16);color:var(--short)}
+.chn.exp .dt{display:block;font:400 12px/1.5 var(--body);color:var(--muted)}
+.h-plan>div.chn{display:block;padding:12px 14px}.h-plan>div.chn b{grid-column:auto;grid-row:auto;display:block;text-align:left;font:600 13px/1.4 var(--body);margin:0 0 8px;overflow:visible;text-overflow:clip}
+.h-plan>div.chn.exp{border-left:3px solid var(--muted)}.h-plan>div.chn.exp.long{border-left-color:var(--long)}.h-plan>div.chn.exp.short{border-left-color:var(--short)}
 /* Kalender */
 .sess{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sc{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(129,151,189,.06)}
@@ -1015,7 +1022,7 @@ function chancen(){
 function renderHero(s,b,c){
   renderHero0(s,b,c);
   const el=$('hplan');
-  try{const x=expOfS(s);if(el&&x&&s.state!=='beyond'&&x.verdict!=='zuwenig'){const cl=x.verdict==='bewährt'?'long':x.verdict==='schwach'?'short':'';el.insertAdjacentHTML('beforeend',`<div class="chn exp ${cl}"><b>${s.dir!=='none'?'':'Wenn es ein Signal wird: '}${nesc(expText(x))}</b>${x.factor<1&&$('exr').value==='half'?' Das Risiko in „Deine Order“ ist deshalb halbiert.':''}</div>`)}}catch(err){}
+  try{const x=expOfS(s);if(el&&x&&s.state!=='beyond'&&x.verdict!=='zuwenig'){const cl=x.verdict==='bewährt'?'long':x.verdict==='schwach'?'short':'';el.insertAdjacentHTML('beforeend',`<div class="chn exp ${cl}"><span class="vb">${x.verdict==='bewährt'?'Erfahrung: bewährt':x.verdict==='schwach'?'Erfahrung: schwach':'Erfahrung: neutral'}</span><span class="dt">${nesc(expText(x).replace(/^Erfahrung: (bewährt|historisch schwach|neutral)\s*/,''))}${x.factor<1&&$('exr').value==='half'?' Das Risiko in „Deine Order“ ist deshalb halbiert.':''}</span></div>`)}}catch(err){}
   if(!el||s.dir!=='none')return;
   const ch=chancen(),ct=!custom&&mtf&&mtf.child&&mtf.child.s&&mtf.child.s.seq?mtf.child:null;
   let h='';
